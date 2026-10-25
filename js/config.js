@@ -8,6 +8,6 @@
    NUNCA pongas aquí la clave "service_role" / "secret".
    ========================================================================== */
 window.ONE_LIFE_CONFIG = {
-  supabaseUrl: 'https://TU-PROYECTO.supabase.co',
-  supabaseKey: 'TU_CLAVE_ANON_O_PUBLISHABLE',
+  supabaseUrl: 'https://ivcrurxrxdmjuxpgjash.supabase.co',
+  supabaseKey: 'sb_publishable_rcb6Qqhe1vznrP8sfQ9HTQ_2Z1ABNXf',
 };
