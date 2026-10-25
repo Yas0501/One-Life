@@ -1,6 +1,8 @@
 /* ==========================================================================
    One Life — lógica de la aplicación
-   SPA con rutas por hash. Cuentas y datos en localStorage (versión local).
+   SPA con rutas por hash. Cuentas y datos en Supabase a través de window.db
+   (js/db.js). El navegador solo guarda preferencias locales (recordarme,
+   inactividad, intentos fallidos).
    ========================================================================== */
 (() => {
   'use strict';
@@ -34,6 +36,7 @@
   const parseISO = (iso) => new Date(`${iso}T00:00:00`);
   const fmtDate = (iso, opts = { day: 'numeric', month: 'short' }) => parseISO(iso).toLocaleDateString('es', opts);
   const fmtDateTime = (ts) => new Date(ts).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' });
+  const fmtStamp = (ts) => new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
   /** Convierte texto a número aceptando coma decimal. Devuelve NaN si no es un número limpio. */
   const parseNum = (value) => {
@@ -42,10 +45,8 @@
     return Number(s);
   };
 
-  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
-
   /* ------------------------------------------------------------------
-     Almacenamiento seguro (puede fallar en modo privado o con cuota llena)
+     Almacenamiento local: solo preferencias de este navegador
      ------------------------------------------------------------------ */
   const storage = (() => {
     const available = (area) => {
@@ -77,10 +78,7 @@
           const a = area(persist);
           if (a) a.setItem(key, raw); else memory.set(key, raw);
           return true;
-        } catch {
-          toast('No se pudo guardar. El almacenamiento del navegador está lleno o bloqueado.', 'error');
-          return false;
-        }
+        } catch { return false; }
       },
       remove(key) {
         try { localStorage.removeItem(key); } catch { /* sin acceso */ }
@@ -90,7 +88,14 @@
     };
   })();
 
-  const KEYS = { users: 'ol.users', session: 'ol.session', attempts: 'ol.attempts' };
+  const KEYS = {
+    attempts: 'ol.attempts',      // intentos fallidos por correo
+    remember: 'ol.remember',      // "Recordarme" marcado
+    alive: 'ol.alive',            // sessionStorage: la pestaña sigue abierta
+    lastActive: 'ol.lastActive',  // última interacción, para el cierre por inactividad
+  };
+
+  const db = window.db || { ready: false };
 
   /* ------------------------------------------------------------------
      Datos de dominio
@@ -211,6 +216,7 @@
     progreso: 'Tu progreso',
     informacion: 'Información',
     perfil: 'Perfil y ajustes',
+    admin: 'Administración',
   };
 
   /* ------------------------------------------------------------------
@@ -369,6 +375,21 @@
     }
   });
 
+  /** Deshabilita el botón y muestra un indicador mientras dura una operación con el servidor. */
+  async function withBusy(btn, task) {
+    const label = btn.innerHTML;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> ${btn.dataset.busy || 'Guardando…'}`;
+    try {
+      return await task();
+    } finally {
+      btn.innerHTML = label;
+      btn.removeAttribute('aria-busy');
+      if (!btn.closest('form')?.dataset.locked) btn.disabled = false;
+    }
+  }
+
   /* ------------------------------------------------------------------
      Toasts y diálogo de confirmación
      ------------------------------------------------------------------ */
@@ -400,57 +421,82 @@
     input.oninput = () => { ok.disabled = input.value.trim().toLowerCase() !== requireText.toLowerCase(); };
 
     return new Promise((resolve) => {
-      dlg.onclose = () => resolve(dlg.returnValue === 'ok');
-      dlg.returnValue = '';
-      if (typeof dlg.showModal === 'function') dlg.showModal();
-      else resolve(window.confirm(`${title}\n\n${body}`));
+      if (typeof dlg.showModal !== 'function') {
+        resolve(window.confirm(`${title}\n\n${body}`));
+        return;
+      }
+      // Se responde desde el propio botón: el evento "close" no siempre llega
+      let done = false;
+      const finish = (value) => {
+        if (done) return;
+        done = true;
+        if (dlg.open) dlg.close();
+        resolve(value);
+      };
+      $('form', dlg).onsubmit = (e) => {
+        e.preventDefault();
+        finish(e.submitter?.value === 'ok' && !ok.disabled);
+      };
+      dlg.oncancel = (e) => { e.preventDefault(); finish(false); }; // tecla Escape
+      dlg.onclose = () => finish(false);
+      dlg.showModal();
       (requireText ? input : ok).focus();
     });
   }
 
   /* ------------------------------------------------------------------
-     Cuentas y sesión
+     Sesión y datos del usuario (Supabase)
      ------------------------------------------------------------------ */
   const SESSION_IDLE_MS = 30 * 60 * 1000;
   const MAX_ATTEMPTS = 5;
   const LOCK_MS = 60 * 1000;
 
-  const getUsers = () => storage.get(KEYS.users, {});
-  const saveUsers = (users) => storage.set(KEYS.users, users);
+  /** Copia en memoria de los datos del usuario, cargada desde Supabase al iniciar sesión. */
+  const state = { user: null, isAdmin: false, recovery: false, loggingOut: false };
+  const currentUser = () => state.user;
 
-  const getSession = () => storage.get(KEYS.session, null, true) || storage.get(KEYS.session, null, false);
-  const saveSession = (s) => storage.set(KEYS.session, s, s.persist);
-  const clearSession = () => storage.remove(KEYS.session);
-
-  const currentUser = () => {
-    const s = getSession();
-    if (!s) return null;
-    return getUsers()[s.email] || null;
-  };
-  const updateUser = (mutator) => {
-    const s = getSession();
-    if (!s) return null;
-    const users = getUsers();
-    const user = users[s.email];
-    if (!user) return null;
-    mutator(user);
-    users[s.email] = user;
-    return saveUsers(users) ? user : null;
-  };
-
-  async function hashPassword(password, salt) {
-    const data = new TextEncoder().encode(`${salt}:${password}`);
-    if (window.crypto?.subtle) {
-      const buf = await crypto.subtle.digest('SHA-256', data);
-      return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-    }
-    // Respaldo para contextos sin Web Crypto (no criptográfico)
-    let h = 5381;
-    for (const byte of data) h = ((h << 5) + h + byte) >>> 0;
-    return `djb2-${h.toString(16)}`;
+  async function loadUserData() {
+    const [me, history, activities, logins, isAdmin] = await Promise.all([
+      db.getMe(),
+      db.listRecords(),
+      db.listActivities({ sinceDays: 365 }),
+      db.recentLogins(2).catch(() => []),
+      db.isAdmin(),
+    ]);
+    state.user = { ...me, history, activities, previousLogin: logins[1] || null };
+    state.isAdmin = isAdmin;
+    $('#nav-admin').hidden = !isAdmin;
   }
 
-  /* Bloqueo tras intentos fallidos */
+  function clearLocalState() {
+    state.user = null;
+    state.isAdmin = false;
+    state.recovery = false;
+    $('#nav-admin').hidden = true;
+  }
+
+  /** Marca la sesión como activa en este navegador (para "Recordarme" e inactividad). */
+  function markSessionStart(remember) {
+    storage.set(KEYS.remember, Boolean(remember));
+    storage.set(KEYS.alive, true, false);
+    storage.set(KEYS.lastActive, Date.now());
+  }
+
+  /* Guardados: escriben en Supabase y actualizan la copia en memoria */
+  async function saveRecord({ date, weight, height }) {
+    const rec = await db.upsertRecord({ date, weight: round1(weight), height });
+    const u = state.user;
+    const existed = u.history.some((r) => r.date === date);
+    u.history = [...u.history.filter((r) => r.date !== date), rec].sort((a, b) => a.date.localeCompare(b.date));
+    return existed ? 'updated' : 'created';
+  }
+
+  async function saveProfile(changes) {
+    const me = await db.updateProfile(changes);
+    Object.assign(state.user, { name: me.name, role: me.role, notifications: me.notifications, profile: me.profile });
+  }
+
+  /* Bloqueo tras intentos fallidos (complementa el límite del servidor) */
   const getAttempt = (email) => storage.get(KEYS.attempts, {})[email] || { count: 0, until: 0 };
   const setAttempt = (email, data) => {
     const all = storage.get(KEYS.attempts, {});
@@ -458,18 +504,11 @@
     storage.set(KEYS.attempts, all);
   };
 
-  function startSession(email, persist) {
-    saveSession({ email, persist, lastActive: Date.now() });
-    const users = getUsers();
-    if (users[email]) {
-      users[email].previousLogin = users[email].lastLogin || null;
-      users[email].lastLogin = Date.now();
-      saveUsers(users);
-    }
-  }
-
-  function logout(reason) {
-    clearSession();
+  async function logout(reason) {
+    state.loggingOut = true;
+    try { await db.signOut(); } catch { /* la sesión local se limpia igual */ }
+    state.loggingOut = false;
+    clearLocalState();
     if (reason === 'idle') toast('Tu sesión se cerró por inactividad. Vuelve a iniciar sesión.', 'info', 6000);
     else if (reason !== 'silent') toast('Sesión cerrada. ¡Hasta pronto!', 'success');
     location.hash = '#/acceso';
@@ -479,23 +518,27 @@
   let lastTouch = 0;
   const touchSession = () => {
     const now = Date.now();
-    if (now - lastTouch < 15000) return;
+    if (!state.user || now - lastTouch < 15000) return;
     lastTouch = now;
-    const s = getSession();
-    if (s) saveSession({ ...s, lastActive: now });
+    storage.set(KEYS.lastActive, now);
   };
   ['click', 'keydown', 'scroll', 'touchstart'].forEach((ev) => window.addEventListener(ev, touchSession, { passive: true }));
   setInterval(() => {
-    const s = getSession();
-    if (s && Date.now() - s.lastActive > SESSION_IDLE_MS) logout('idle');
+    if (state.user && Date.now() - storage.get(KEYS.lastActive, Date.now()) > SESSION_IDLE_MS) logout('idle');
   }, 20000);
-  /* Si la sesión se cierra en otra pestaña */
-  window.addEventListener('storage', (e) => {
-    if (e.key === KEYS.session && !e.newValue && location.hash.startsWith('#/app')) {
-      toast('La sesión se cerró en otra pestaña.', 'info');
-      location.hash = '#/acceso';
+
+  /* Cambios de sesión que no inicia esta pestaña: otra pestaña, expiración, enlace de recuperación */
+  function handleAuthEvent(event) {
+    if (event === 'PASSWORD_RECOVERY') {
+      state.recovery = true;
+      if (state.user) location.hash = '#/app/perfil?tab=seguridad';
     }
-  });
+    if (event === 'SIGNED_OUT' && state.user && !state.loggingOut) {
+      clearLocalState();
+      toast('Tu sesión terminó (se cerró en otra pestaña o expiró).', 'info', 6000);
+      if (location.hash.startsWith('#/app')) location.hash = '#/acceso';
+    }
+  }
 
   /* ------------------------------------------------------------------
      Router
@@ -509,10 +552,6 @@
   function route() {
     const { parts, params } = parseHash();
     const user = currentUser();
-    const session = getSession();
-
-    // Sesión huérfana (usuario eliminado o datos corruptos)
-    if (session && !user) clearSession();
 
     if (parts[0] === 'app') {
       const view = VIEW_TITLES[parts[1]] ? parts[1] : 'resumen';
@@ -520,6 +559,11 @@
         const label = VIEW_TITLES[view] || 'esta sección';
         toast(`Inicia sesión para acceder a ${label.toLowerCase()}.`, 'info');
         location.replace(`#/acceso?next=${view}`);
+        return;
+      }
+      if (view === 'admin' && !state.isAdmin) {
+        toast('Esa sección es solo para administradores.', 'error');
+        location.replace('#/app/resumen');
         return;
       }
       showApp(view, params);
@@ -562,8 +606,6 @@
     renderShell();
     RENDER[view]?.(params);
   }
-
-  window.addEventListener('hashchange', route);
 
   /* ------------------------------------------------------------------
      Sitio público: navegación
@@ -661,11 +703,34 @@
     document.getElementById(id)?.addEventListener('blur', (e) => setError(e.target, fn(e.target.value)));
   });
 
-  $('#forgot-btn').addEventListener('click', () => {
-    confirmDialog({
-      title: 'Recuperar contraseña',
-      body: 'En esta versión tus datos se guardan solo en este dispositivo, así que no podemos enviarte un correo de recuperación. La recuperación por correo llegará con las alertas de seguridad. Mientras tanto, puedes crear una cuenta nueva.',
-      confirmLabel: 'Entendido',
+  /** Si Supabase no está configurado, avisa en el formulario y devuelve false. */
+  function requireDb(form) {
+    if (db.ready) return true;
+    formAlert(form, 'La app aún no está conectada a la base de datos. Configura tus datos de Supabase en js/config.js.');
+    return false;
+  }
+
+  $('#forgot-btn').addEventListener('click', async () => {
+    const form = $('#login-form');
+    clearForm(form);
+    const email = form.email.value.trim().toLowerCase();
+    const err = validate.email(email);
+    if (err) {
+      setError(form.email, err === 'Escribe tu correo electrónico.' ? 'Escribe tu correo y vuelve a pulsar «¿Olvidaste tu contraseña?».' : err);
+      form.email.focus();
+      return;
+    }
+    if (!requireDb(form)) return;
+    const btn = $('#forgot-btn');
+    btn.dataset.busy = 'Enviando…';
+    await withBusy(btn, async () => {
+      try {
+        await db.sendPasswordReset(email);
+        // Mensaje neutro: no revela si el correo tiene cuenta
+        formAlert(form, `Si ${email} tiene una cuenta, recibirás un correo con un enlace para crear una contraseña nueva.`, 'success');
+      } catch (e) {
+        formAlert(form, e.message);
+      }
     });
   });
 
@@ -678,8 +743,8 @@
       const left = Math.ceil((until - Date.now()) / 1000);
       if (left <= 0) {
         clearInterval(lockTimer);
-        btn.disabled = false;
         delete form.dataset.locked;
+        btn.disabled = false;
         formAlert(form, 'Ya puedes intentarlo de nuevo.', 'success');
         return;
       }
@@ -689,6 +754,21 @@
     };
     tick();
     lockTimer = setInterval(tick, 1000);
+  }
+
+  function registerFailedAttempt(form, email) {
+    const attempt = getAttempt(email);
+    const count = (attempt.until && attempt.until <= Date.now() ? 0 : attempt.count) + 1;
+    if (count >= MAX_ATTEMPTS) {
+      setAttempt(email, { count, until: Date.now() + LOCK_MS });
+      showLock(form, email);
+      return;
+    }
+    setAttempt(email, { count, until: 0 });
+    const left = MAX_ATTEMPTS - count;
+    formAlert(form, `Correo o contraseña incorrectos. Te ${left === 1 ? 'queda 1 intento' : `quedan ${left} intentos`} antes de un bloqueo temporal.`);
+    form.password.value = '';
+    form.password.focus();
   }
 
   $('#login-form').addEventListener('submit', async (e) => {
@@ -703,40 +783,35 @@
       email: validate.email(email),
       password: password ? '' : 'Escribe tu contraseña.',
     });
-    if (!ok) return;
-
-    if (!storage.ok) {
-      formAlert(form, 'Tu navegador bloquea el almacenamiento local, así que no podemos verificar tu cuenta. Desactiva el modo privado o permite los datos del sitio.');
-      return;
-    }
+    if (!ok || !requireDb(form)) return;
 
     const attempt = getAttempt(email);
     if (attempt.until > Date.now()) { showLock(form, email); return; }
 
-    const user = getUsers()[email];
-    const valid = user && (await hashPassword(password, user.salt)) === user.hash;
-    if (!valid) {
-      const count = (attempt.until && attempt.until <= Date.now() ? 0 : attempt.count) + 1;
-      if (count >= MAX_ATTEMPTS) {
-        setAttempt(email, { count, until: Date.now() + LOCK_MS });
-        showLock(form, email);
-      } else {
-        setAttempt(email, { count, until: 0 });
-        const left = MAX_ATTEMPTS - count;
-        // Mensaje genérico: no revela si el correo existe
-        formAlert(form, `Correo o contraseña incorrectos. Te ${left === 1 ? 'queda 1 intento' : `quedan ${left} intentos`} antes de un bloqueo temporal.`);
-        form.password.value = '';
-        form.password.focus();
+    const btn = $('button[type="submit"]', form);
+    btn.dataset.busy = 'Entrando…';
+    await withBusy(btn, async () => {
+      try {
+        await db.signIn(email, password);
+      } catch (err) {
+        if (/incorrectos/.test(err.message)) registerFailedAttempt(form, email);
+        else formAlert(form, err.message);
+        return;
       }
-      return;
-    }
-
-    setAttempt(email, null);
-    startSession(email, form.remember.checked);
-    form.reset();
-    const next = parseHash().params.get('next');
-    toast(`¡Bienvenido de nuevo, ${user.name.split(' ')[0]}!`, 'success');
-    location.hash = `#/app/${VIEW_TITLES[next] ? next : 'resumen'}`;
+      setAttempt(email, null);
+      markSessionStart(form.remember.checked);
+      try {
+        await loadUserData();
+      } catch (err) {
+        formAlert(form, `Iniciaste sesión, pero no pudimos cargar tus datos: ${err.message}`);
+        await db.signOut().catch(() => {});
+        return;
+      }
+      form.reset();
+      const next = parseHash().params.get('next');
+      toast(`¡Bienvenido de nuevo, ${state.user.name.split(' ')[0]}!`, 'success');
+      location.hash = `#/app/${VIEW_TITLES[next] ? next : 'resumen'}`;
+    });
   });
 
   $('#register-form').addEventListener('submit', async (e) => {
@@ -754,33 +829,42 @@
       confirm: !form.confirm.value ? 'Confirma tu contraseña.' : form.confirm.value !== password ? 'Las contraseñas no coinciden.' : '',
       terms: form.terms.checked ? '' : 'Debes aceptar para continuar.',
     };
-    if (!errors.email && getUsers()[email]) errors.email = 'Ya existe una cuenta con este correo. Inicia sesión.';
-    if (!applyErrors(form, errors)) return;
+    if (!applyErrors(form, errors) || !requireDb(form)) return;
 
-    if (!storage.ok) {
-      formAlert(form, 'Tu navegador bloquea el almacenamiento local, así que no podemos crear tu cuenta. Desactiva el modo privado o permite los datos del sitio.');
-      return;
-    }
+    const btn = $('button[type="submit"]', form);
+    btn.dataset.busy = 'Creando cuenta…';
+    await withBusy(btn, async () => {
+      let result;
+      try {
+        result = await db.signUp(name, email, password);
+      } catch (err) {
+        if (/Ya existe/.test(err.message)) setError(form.email, err.message);
+        else formAlert(form, err.message);
+        return;
+      }
+      form.reset();
+      $('.strength', form).dataset.level = 0;
+      $$('#reg-password-rules li').forEach((li) => li.classList.remove('is-ok'));
 
-    const salt = uid();
-    const users = getUsers();
-    users[email] = {
-      name, email, salt,
-      hash: await hashPassword(password, salt),
-      createdAt: Date.now(),
-      profile: { age: null, sex: '', height: null, weight: null, goal: 'mantener', target: null, level: 'ligero', minutesGoal: 30 },
-      notifications: { weighIn: true, activity: true, tips: true, security: true },
-      history: [],
-      activities: [],
-    };
-    if (!saveUsers(users)) return;
+      if (result.needsConfirmation) {
+        history.replaceState(null, '', '#/acceso');
+        setAuthTab('login');
+        const login = $('#login-form');
+        login.email.value = email;
+        formAlert(login, `Te enviamos un correo a ${email}. Abre el enlace para confirmar tu cuenta y luego inicia sesión.`, 'success');
+        return;
+      }
 
-    startSession(email, false);
-    form.reset();
-    $('.strength', form).dataset.level = 0;
-    $$('#reg-password-rules li').forEach((li) => li.classList.remove('is-ok'));
-    toast(`Cuenta creada. ¡Bienvenido a One Life, ${name.split(' ')[0]}!`, 'success');
-    location.hash = '#/app/resumen';
+      markSessionStart(false);
+      try {
+        await loadUserData();
+      } catch (err) {
+        formAlert(form, `Tu cuenta se creó, pero no pudimos cargar tus datos: ${err.message}`);
+        return;
+      }
+      toast(`Cuenta creada. ¡Bienvenido a One Life, ${name.split(' ')[0]}!`, 'success');
+      location.hash = '#/app/resumen';
+    });
   });
 
   /* ------------------------------------------------------------------
@@ -820,7 +904,7 @@
 
   /* Helpers de perfil */
   const profileComplete = (p) => Boolean(p.age && p.sex && p.height && p.weight);
-  const latestRecord = (u) => [...u.history].sort((a, b) => a.date.localeCompare(b.date)).at(-1) || null;
+  const latestRecord = (u) => u.history.at(-1) || null;
   const currentBMI = (u) => {
     const p = u.profile;
     if (p.weight && p.height) return round1(calcBMI(p.weight, p.height));
@@ -828,16 +912,6 @@
     return r ? r.bmi : null;
   };
   const minutesOn = (u, iso) => u.activities.filter((a) => a.date === iso).reduce((s, a) => s + a.minutes, 0);
-
-  /** Agrega o reemplaza el registro de peso de una fecha. */
-  function upsertRecord(user, { date, weight, height }) {
-    const bmi = round1(calcBMI(weight, height));
-    const i = user.history.findIndex((r) => r.date === date);
-    const rec = { date, weight: round1(weight), height, bmi };
-    if (i >= 0) user.history[i] = rec; else user.history.push(rec);
-    user.history.sort((a, b) => a.date.localeCompare(b.date));
-    return i >= 0 ? 'updated' : 'created';
-  }
 
   /* ------------------------------------------------------------------
      Gráficas SVG
@@ -871,7 +945,7 @@
     host.innerHTML = `${svg}<line class="grid-line" x1="${pad.l}" x2="${SVG_W - pad.r}" y1="${H - pad.b}" y2="${H - pad.b}"/></svg>`;
   }
 
-  function lineChart(host, points, { unit = '', band = null, goal = null, height = 240, label = '' } = {}) {
+  function lineChart(host, points, { unit = '', band = null, goal = null, height = 240, label = '', decimals = 1 } = {}) {
     const H = height, pad = { t: 20, r: 20, b: 30, l: 44 };
     const values = points.map((p) => p.value);
     const extra = [...(band || []), ...(goal ? [goal] : [])];
@@ -879,6 +953,7 @@
     if (max - min < 2) { min -= 1; max += 1; }
     const span = max - min;
     min -= span * 0.12; max += span * 0.12;
+    if (decimals === 0) min = Math.max(0, min);
     const t0 = parseISO(points[0].date).getTime();
     const t1 = parseISO(points.at(-1).date).getTime();
     const x = (iso) => (t1 === t0 ? (SVG_W + pad.l - pad.r) / 2 : pad.l + (SVG_W - pad.l - pad.r) * ((parseISO(iso).getTime() - t0) / (t1 - t0)));
@@ -888,7 +963,7 @@
     for (let i = 0; i <= 4; i++) {
       const v = min + ((max - min) * i) / 4;
       svg += `<line class="grid-line" x1="${pad.l}" x2="${SVG_W - pad.r}" y1="${y(v)}" y2="${y(v)}"/>`;
-      svg += `<text class="axis-label" x="${pad.l - 8}" y="${y(v) + 4}" text-anchor="end">${fmt(v, max - min < 10 ? 1 : 0)}</text>`;
+      svg += `<text class="axis-label" x="${pad.l - 8}" y="${y(v) + 4}" text-anchor="end">${fmt(v, decimals === 0 || max - min >= 10 ? 0 : 1)}</text>`;
     }
     if (band) {
       const top = y(Math.min(band[1], max)), bot = y(Math.max(band[0], min));
@@ -905,11 +980,11 @@
     svg += `<path class="line" d="${d}"/>`;
     points.forEach((p, i) => {
       const last = i === points.length - 1;
-      svg += `<circle class="dot${last ? ' dot--last' : ''}" cx="${x(p.date)}" cy="${y(p.value)}" r="${last ? 5 : 3.5}"><title>${fmtDate(p.date, { day: 'numeric', month: 'long', year: 'numeric' })}: ${fmt(p.value)} ${unit}</title></circle>`;
+      svg += `<circle class="dot${last ? ' dot--last' : ''}" cx="${x(p.date)}" cy="${y(p.value)}" r="${last ? 5 : 3.5}"><title>${fmtDate(p.date, { day: 'numeric', month: 'long', year: 'numeric' })}: ${fmt(p.value, decimals)} ${unit}</title></circle>`;
     });
     const lp = points.at(-1);
     const lx = x(lp.date);
-    svg += `<text class="value-label" x="${lx}" y="${y(lp.value) - 12}" text-anchor="${lx > SVG_W - 60 ? 'end' : 'middle'}">${fmt(lp.value)}</text>`;
+    svg += `<text class="value-label" x="${lx}" y="${y(lp.value) - 12}" text-anchor="${lx > SVG_W - 60 ? 'end' : 'middle'}">${fmt(lp.value, decimals)}</text>`;
     // Etiquetas del eje X: primera, media y última
     const ticks = points.length > 2 ? [points[0], points[Math.floor(points.length / 2)], lp] : points;
     [...new Set(ticks)].forEach((p, i, arr) => {
@@ -1073,16 +1148,24 @@
     $('#bmi-save').disabled = false;
   }
 
-  $('#bmi-save').addEventListener('click', () => {
+  $('#bmi-save').addEventListener('click', async (e) => {
     if (!lastBMI) return;
+    const data = lastBMI;
+    const btn = e.currentTarget;
     let result;
-    const saved = updateUser((u) => {
-      result = upsertRecord(u, { date: todayISO(), weight: lastBMI.weight, height: lastBMI.height });
-      Object.assign(u.profile, { weight: round1(lastBMI.weight), height: lastBMI.height, age: lastBMI.age, sex: lastBMI.sex });
+    const saved = await withBusy(btn, async () => {
+      try {
+        result = await saveRecord({ date: todayISO(), weight: data.weight, height: data.height });
+        await saveProfile({ weight: round1(data.weight), height: data.height, age: data.age, sex: data.sex });
+        return true;
+      } catch (err) {
+        toast(err.message, 'error');
+        return false;
+      }
     });
     if (!saved) return;
     toast(result === 'updated' ? 'Actualizamos tu registro de hoy.' : 'IMC guardado en tu progreso.', 'success');
-    $('#bmi-save').disabled = true;
+    btn.disabled = true;
   });
 
   /* ---------- Plan de alimentación ---------- */
@@ -1192,7 +1275,9 @@
     if (week.some((d) => d.value)) barChart($('#act-week-chart'), week, { goal });
     else emptyState($('#act-week-chart'), 'fa-chart-column', 'Registra tu primera actividad para ver tu semana.');
 
-    const recent = [...u.activities].sort((a, b) => b.date.localeCompare(a.date) || b.created - a.created).slice(0, 8);
+    const recent = [...u.activities]
+      .sort((a, b) => b.date.localeCompare(a.date) || String(b.created).localeCompare(String(a.created)))
+      .slice(0, 8);
     $('#act-log').innerHTML = recent.length ? recent.map((a) => {
       const t = ACTIVITY_TYPES.find((x) => x.key === a.type) || ACTIVITY_TYPES[0];
       return `<li>
@@ -1210,7 +1295,7 @@
       + (bmi ? '' : '<li class="muted">Calcula tu IMC para recibir ejercicios adaptados.</li>');
   };
 
-  $('#activity-form').addEventListener('submit', (e) => {
+  $('#activity-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
     clearForm(f);
@@ -1236,11 +1321,19 @@
     if (!applyErrors(f, errors)) return;
 
     const type = ACTIVITY_TYPES.find((t) => t.key === f.type.value);
-    const saved = updateUser((u) => {
-      u.activities.push({
-        id: uid(), type: type.key, minutes, steps, date: f.date.value, created: Date.now(),
-        kcal: activityKcal(type.met, minutes, u.profile.weight),
-      });
+    const u = currentUser();
+    const saved = await withBusy($('button[type="submit"]', f), async () => {
+      try {
+        const activity = await db.addActivity({
+          type: type.key, minutes, steps, date: f.date.value,
+          kcal: activityKcal(type.met, minutes, u.profile.weight),
+        });
+        u.activities.unshift(activity);
+        return true;
+      } catch (err) {
+        formAlert(f, err.message);
+        return false;
+      }
     });
     if (!saved) return;
     toast(`${type.label}: ${minutes} min registrados.`, 'success');
@@ -1254,7 +1347,15 @@
     if (!btn) return;
     const ok = await confirmDialog({ title: 'Eliminar actividad', body: '¿Seguro que quieres eliminar este registro?', confirmLabel: 'Eliminar' });
     if (!ok) return;
-    updateUser((u) => { u.activities = u.activities.filter((a) => a.id !== btn.dataset.delActivity); });
+    const id = Number(btn.dataset.delActivity);
+    try {
+      await db.deleteActivity(id);
+    } catch (err) {
+      toast(err.message, 'error');
+      return;
+    }
+    const u = currentUser();
+    u.activities = u.activities.filter((a) => a.id !== id);
     toast('Actividad eliminada.', 'info');
     RENDER.actividad();
   });
@@ -1309,7 +1410,7 @@
         <td>${fmtDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
         <td>${fmt(r.weight)} kg</td>
         <td>${fmt(r.bmi)}</td>
-        <td><button class="icon-btn" data-del-record="${r.date}" aria-label="Eliminar registro del ${fmtDate(r.date)}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td>
+        <td><button class="icon-btn" data-del-record="${r.id}" data-date="${r.date}" aria-label="Eliminar registro del ${fmtDate(r.date)}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></td>
       </tr>`).join('') : '<tr><td colspan="4" class="muted">Sin registros.</td></tr>';
   };
 
@@ -1341,7 +1442,7 @@
 
     const weight = parseNum(f.weight.value);
     const date = f.date.value;
-    const prev = [...u.history].filter((r) => r.date < date).at(-1);
+    const prev = u.history.filter((r) => r.date < date).at(-1);
     if (prev) {
       const days = Math.max(1, (parseISO(date) - parseISO(prev.date)) / 86400000);
       if (Math.abs(weight - prev.weight) / days > 2) {
@@ -1358,11 +1459,18 @@
       if (!ok) return;
     }
 
-    updateUser((usr) => {
-      upsertRecord(usr, { date, weight, height: usr.profile.height });
-      const latest = usr.history.at(-1);
-      usr.profile.weight = latest.weight;
+    const saved = await withBusy($('button[type="submit"]', f), async () => {
+      try {
+        await saveRecord({ date, weight, height: u.profile.height });
+        const latest = u.history.at(-1);
+        if (latest.weight !== u.profile.weight) await saveProfile({ weight: latest.weight });
+        return true;
+      } catch (err) {
+        formAlert(f, err.message);
+        return false;
+      }
     });
+    if (!saved) return;
     toast('Registro guardado.', 'success');
     f.reset();
     f.date.value = todayISO();
@@ -1372,31 +1480,50 @@
   $('#rec-table').addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-del-record]');
     if (!btn) return;
-    const ok = await confirmDialog({ title: 'Eliminar registro', body: `¿Eliminar el registro del ${fmtDate(btn.dataset.delRecord, { day: 'numeric', month: 'long' })}?`, confirmLabel: 'Eliminar' });
+    const ok = await confirmDialog({ title: 'Eliminar registro', body: `¿Eliminar el registro del ${fmtDate(btn.dataset.date, { day: 'numeric', month: 'long' })}?`, confirmLabel: 'Eliminar' });
     if (!ok) return;
-    updateUser((u) => { u.history = u.history.filter((r) => r.date !== btn.dataset.delRecord); });
+    const id = Number(btn.dataset.delRecord);
+    try {
+      await db.deleteRecord(id);
+    } catch (err) {
+      toast(err.message, 'error');
+      return;
+    }
+    const u = currentUser();
+    u.history = u.history.filter((r) => r.id !== id);
     toast('Registro eliminado.', 'info');
     RENDER.progreso();
   });
 
-  /* Datos de ejemplo para explorar la vista */
-  document.addEventListener('click', (e) => {
+  /* Datos de ejemplo para explorar la vista (se guardan en tu cuenta y se pueden borrar) */
+  document.addEventListener('click', async (e) => {
     if (e.target.id !== 'load-sample') return;
-    updateUser((u) => {
-      const h = u.profile.height || 172;
-      const start = u.profile.weight || 82;
-      for (let i = 0; i < 12; i++) {
-        const w = start + 3.2 - i * 0.32 + Math.sin(i * 1.7) * 0.4;
-        upsertRecord(u, { date: isoDaysAgo((11 - i) * 8), weight: w, height: h });
+    const btn = e.target;
+    const u = currentUser();
+    const h = u.profile.height || 172;
+    const start = u.profile.weight || 82;
+    const ok = await withBusy(btn, async () => {
+      try {
+        for (let i = 0; i < 12; i++) {
+          const w = start + 3.2 - i * 0.32 + Math.sin(i * 1.7) * 0.4;
+          await saveRecord({ date: isoDaysAgo((11 - i) * 8), weight: w, height: h });
+        }
+        for (let i = 0; i < 6; i++) {
+          const t = ACTIVITY_TYPES[i % 4];
+          const minutes = 20 + ((i * 13) % 35);
+          u.activities.unshift(await db.addActivity({
+            type: t.key, minutes, steps: t.key === 'caminata' ? minutes * 110 : 0,
+            date: isoDaysAgo(i + 1), kcal: activityKcal(t.met, minutes, start),
+          }));
+        }
+        await saveProfile({ height: h, weight: u.history.at(-1).weight });
+        return true;
+      } catch (err) {
+        toast(err.message, 'error');
+        return false;
       }
-      for (let i = 0; i < 6; i++) {
-        const t = ACTIVITY_TYPES[i % 4];
-        const minutes = 20 + ((i * 13) % 35);
-        u.activities.push({ id: uid(), type: t.key, minutes, steps: t.key === 'caminata' ? minutes * 110 : 0, date: isoDaysAgo(i + 1), created: Date.now(), kcal: activityKcal(t.met, minutes, start) });
-      }
-      u.profile.height = h;
-      u.profile.weight = round1(u.history.at(-1).weight);
     });
+    if (!ok) return;
     toast('Cargamos datos de ejemplo. Puedes borrarlos desde el historial.', 'info');
     progState.range = 0;
     selectTab($('#prog-range'), $('#prog-range [data-range="0"]'));
@@ -1485,10 +1612,14 @@
     $('#gl-warning').hidden = true;
 
     const nf = $('#notif-form');
-    Object.entries(u.notifications).forEach(([k, v]) => { if (nf.elements[k]) nf.elements[k].checked = v; });
+    Object.entries(u.notifications || {}).forEach(([k, v]) => { if (nf.elements[k]) nf.elements[k].checked = v; });
 
-    clearForm($('#password-form'));
-    $('#password-form').reset();
+    const pw = $('#password-form');
+    clearForm(pw);
+    pw.reset();
+    // Tras abrir el enlace de recuperación no se pide la contraseña actual
+    $('#pw-current-field').hidden = state.recovery;
+    $('#pw-recovery-note').hidden = !state.recovery;
     $('#sec-last').textContent = u.previousLogin ? fmtDateTime(u.previousLogin) : 'Este es tu primer acceso';
     $('#sec-created').textContent = fmtDateTime(u.createdAt);
   }
@@ -1505,6 +1636,7 @@
       ['fa-person-running', `${p.minutesGoal || 30} min de actividad al día`],
       ['fa-gauge', `Nivel ${LEVEL_LABEL[p.level].toLowerCase()}`],
     ];
+    if (state.isAdmin) items.push(['fa-shield-halved', 'Cuenta de administrador']);
     $('#profile-summary').innerHTML = items.map(([icon, text]) => `<li><i class="fa-solid ${icon}" aria-hidden="true"></i><span>${escapeHTML(text)}</span></li>`).join('');
   }
 
@@ -1519,7 +1651,7 @@
     toast('Cambios descartados.', 'info');
   }));
 
-  $('#profile-form').addEventListener('submit', (e) => {
+  $('#profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
     clearForm(f);
@@ -1543,12 +1675,18 @@
       }
     }
 
+    const u = currentUser();
+    const weightChanged = weight && weight !== u.profile.weight;
     let recordAdded = false;
-    const saved = updateUser((u) => {
-      const weightChanged = weight && weight !== u.profile.weight;
-      u.name = f.name.value.trim().replace(/\s+/g, ' ');
-      Object.assign(u.profile, { age, sex: f.sex.value, height, weight });
-      if (weightChanged && height) { upsertRecord(u, { date: todayISO(), weight, height }); recordAdded = true; }
+    const saved = await withBusy($('button[type="submit"]', f), async () => {
+      try {
+        await saveProfile({ name: f.name.value.trim().replace(/\s+/g, ' '), age, sex: f.sex.value, height, weight });
+        if (weightChanged && height) { await saveRecord({ date: todayISO(), weight, height }); recordAdded = true; }
+        return true;
+      } catch (err) {
+        formAlert(f, err.message);
+        return false;
+      }
     });
     if (!saved) return;
     renderShell();
@@ -1557,7 +1695,7 @@
     toast('Cambios guardados.', 'success');
   });
 
-  $('#goals-form').addEventListener('submit', (e) => {
+  $('#goals-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
     clearForm(f);
@@ -1586,19 +1724,34 @@
       else if (tb >= 30) { warn.hidden = false; warn.textContent = `Tu peso objetivo equivale a un IMC de ${fmt(tb)}. Considera una meta dentro del rango saludable.`; }
     }
 
-    updateUser((usr) => Object.assign(usr.profile, { goal, target, minutesGoal: minutes, level: f.level.value }));
+    const saved = await withBusy($('button[type="submit"]', f), async () => {
+      try {
+        await saveProfile({ goal, target, minutesGoal: minutes, level: f.level.value });
+        return true;
+      } catch (err) {
+        formAlert(f, err.message);
+        return false;
+      }
+    });
+    if (!saved) return;
     renderProfileSummary();
     formAlert(f, 'Objetivos guardados. Tu plan de alimentación se actualizó.', 'success');
     toast('Objetivos guardados.', 'success');
   });
 
-  $('#notif-form').addEventListener('submit', (e) => {
+  $('#notif-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = e.currentTarget;
-    updateUser((u) => {
-      Object.keys(u.notifications).forEach((k) => { u.notifications[k] = f.elements[k].checked; });
+    const notifications = {};
+    ['weighIn', 'activity', 'tips', 'security'].forEach((k) => { notifications[k] = f.elements[k].checked; });
+    await withBusy($('button[type="submit"]', f), async () => {
+      try {
+        await saveProfile({ notifications });
+        toast('Preferencias de notificación guardadas.', 'success');
+      } catch (err) {
+        toast(err.message, 'error');
+      }
     });
-    toast('Preferencias de notificación guardadas.', 'success');
   });
 
   $('#password-form').addEventListener('submit', async (e) => {
@@ -1606,24 +1759,37 @@
     const f = e.currentTarget;
     clearForm(f);
     const u = currentUser();
+    const recovery = state.recovery;
     const errors = {
-      current: f.current.value ? '' : 'Escribe tu contraseña actual.',
+      current: recovery || f.current.value ? '' : 'Escribe tu contraseña actual.',
       password: validate.newPassword(f.password.value, u.email),
       confirm: !f.confirm.value ? 'Confirma la nueva contraseña.' : f.confirm.value !== f.password.value ? 'Las contraseñas no coinciden.' : '',
     };
-    if (!errors.current && (await hashPassword(f.current.value, u.salt)) !== u.hash) errors.current = 'La contraseña actual no es correcta.';
-    if (!errors.password && f.password.value === f.current.value) errors.password = 'La nueva contraseña debe ser distinta de la actual.';
+    if (!recovery && !errors.password && f.password.value === f.current.value) errors.password = 'La nueva contraseña debe ser distinta de la actual.';
     if (!applyErrors(f, errors)) return;
 
-    const salt = uid();
-    const hash = await hashPassword(f.password.value, salt);
-    updateUser((usr) => { usr.salt = salt; usr.hash = hash; });
+    const saved = await withBusy($('button[type="submit"]', f), async () => {
+      try {
+        if (recovery) await db.setNewPassword(f.password.value);
+        else await db.changePassword(f.current.value, f.password.value);
+        return true;
+      } catch (err) {
+        if (/actual no es correcta/.test(err.message)) applyErrors(f, { current: err.message });
+        else formAlert(f, err.message);
+        return false;
+      }
+    });
+    if (!saved) return;
+    state.recovery = false;
     f.reset();
+    $('#pw-current-field').hidden = false;
+    $('#pw-recovery-note').hidden = true;
     formAlert(f, 'Contraseña actualizada correctamente.', 'success');
     toast('Contraseña actualizada.', 'success');
   });
 
-  $('#delete-account').addEventListener('click', async () => {
+  $('#delete-account').addEventListener('click', async (e) => {
+    const btn = e.currentTarget; // tras un await, e.currentTarget ya es null
     const u = currentUser();
     const ok = await confirmDialog({
       title: 'Eliminar cuenta',
@@ -1633,13 +1799,198 @@
       requireLabel: `Escribe ${u.email} para confirmar`,
     });
     if (!ok) return;
-    const users = getUsers();
-    delete users[u.email];
-    saveUsers(users);
+    const deleted = await withBusy(btn, async () => {
+      try {
+        state.loggingOut = true;
+        await db.deleteAccount();
+        return true;
+      } catch (err) {
+        toast(err.message, 'error', 6000);
+        return false;
+      } finally {
+        state.loggingOut = false;
+      }
+    });
+    if (!deleted) return;
     setAttempt(u.email, null);
-    clearSession();
+    clearLocalState();
     toast('Tu cuenta fue eliminada.', 'info');
     location.hash = '#/inicio';
+  });
+
+  /* ---------- Administración ---------- */
+  const adminState = { users: [], range: 30, query: '' };
+
+  RENDER.admin = () => { loadAdmin(); };
+
+  async function loadAdmin() {
+    const errorBox = $('#admin-error');
+    errorBox.hidden = true;
+    $('#admin-tiles').innerHTML = Array.from({ length: 8 }, () => '<article class="tile tile--loading"><span class="tile__label">Cargando…</span><span class="tile__value">—</span></article>').join('');
+    try {
+      const [metrics, dist, logins, users] = await Promise.all([
+        db.admin.metrics(),
+        db.admin.bmiDistribution(),
+        db.admin.loginsPerDay(adminState.range),
+        db.admin.listUsers(),
+      ]);
+      renderAdminMetrics(metrics);
+      renderAdminDistribution(dist);
+      renderAdminLogins(logins);
+      adminState.users = users;
+      renderAdminUsers();
+    } catch (err) {
+      errorBox.hidden = false;
+      errorBox.textContent = `No se pudieron cargar las métricas: ${err.message}`;
+      $('#admin-tiles').innerHTML = '';
+    }
+  }
+
+  const pct = (part, total) => (total ? `${Math.round((part / total) * 100)} %` : '0 %');
+  const orDash = (v, render) => (v === null || v === undefined ? '—' : render(v));
+
+  function renderAdminMetrics(m) {
+    const tiles = [
+      { label: 'Usuarios', value: fmtInt(m.usuarios), meta: `+${fmtInt(m.nuevos_30_dias)} en los últimos 30 días` },
+      { label: 'Activos (7 días)', value: fmtInt(m.activos_7_dias), meta: `${pct(m.activos_7_dias, m.usuarios)} del total` },
+      { label: 'Inicios de sesión hoy', value: fmtInt(m.inicios_sesion_hoy), meta: `${fmtInt(m.inicios_sesion_total)} en total` },
+      { label: 'Con registro de peso', value: fmtInt(m.con_registro_de_peso), meta: `${pct(m.con_registro_de_peso, m.usuarios)} de los usuarios` },
+      { label: 'Peso promedio', value: orDash(m.peso_promedio, (v) => `${fmt(v)}<small>kg</small>`), meta: 'Último registro de cada persona' },
+      { label: 'IMC promedio', value: orDash(m.imc_promedio, (v) => fmt(v)), meta: m.imc_promedio ? bmiCategory(m.imc_promedio).label : 'Sin datos', accent: Boolean(m.imc_promedio) },
+      { label: 'Edad promedio', value: orDash(m.edad_promedio, (v) => `${fmt(v, 0)}<small>años</small>`), meta: 'Perfiles con edad' },
+      { label: 'Actividad semanal', value: orDash(m.minutos_promedio_semana, (v) => `${fmtInt(v)}<small>min</small>`), meta: 'Promedio por persona activa' },
+    ];
+    $('#admin-tiles').innerHTML = tiles.map((t) => `
+      <article class="tile">
+        <span class="tile__label">${t.label}</span>
+        <span class="tile__value">${t.value}</span>
+        <span class="tile__meta${t.accent ? ' is-accent' : ''}">${escapeHTML(t.meta)}</span>
+      </article>`).join('');
+  }
+
+  function renderAdminDistribution(rows) {
+    const total = rows.reduce((s, r) => s + Number(r.usuarios), 0);
+    const max = Math.max(1, ...rows.map((r) => Number(r.usuarios)));
+    if (!total) {
+      emptyState($('#admin-dist'), 'fa-chart-bar', 'Aún nadie ha registrado su peso.');
+      return;
+    }
+    $('#admin-dist').innerHTML = rows.map((r) => {
+      const n = Number(r.usuarios);
+      return `<li>
+        <span class="dist__label">${escapeHTML(r.categoria)}</span>
+        <div class="dist__bar" role="img" aria-label="${escapeHTML(r.categoria)}: ${n} personas"><span style="width:${(n / max) * 100}%"></span></div>
+        <span class="dist__value">${n}<small>${pct(n, total)}</small></span>
+      </li>`;
+    }).join('');
+  }
+
+  function renderAdminLogins(rows) {
+    const host = $('#admin-logins-chart');
+    const points = rows.map((r) => ({ date: String(r.dia).slice(0, 10), value: Number(r.inicios) }));
+    if (!points.some((p) => p.value)) {
+      emptyState(host, 'fa-right-to-bracket', 'No hubo inicios de sesión en este periodo.');
+      return;
+    }
+    lineChart(host, points, { label: 'Inicios de sesión por día', decimals: 0, height: 240 });
+    const total = points.reduce((s, p) => s + p.value, 0);
+    $('#admin-logins-total').textContent = `${fmtInt(total)} en ${points.length} días`;
+  }
+
+  function renderAdminUsers() {
+    const q = adminState.query.trim().toLowerCase();
+    const me = currentUser();
+    const list = adminState.users.filter((u) => !q || u.name.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q));
+    $('#admin-user-count').textContent = `${list.length} de ${adminState.users.length}`;
+    $('#admin-users').innerHTML = list.length ? list.map((u) => {
+      const isMe = u.id === me.id;
+      const isAdmin = u.role === 'admin';
+      const bmi = u.bmi === null ? null : Number(u.bmi);
+      return `<tr>
+        <td><strong>${escapeHTML(u.name)}</strong>${isMe ? ' <span class="badge badge--sm">Tú</span>' : ''}</td>
+        <td>${escapeHTML(u.email)}</td>
+        <td><span class="badge badge--sm${isAdmin ? ' badge--accent' : ''}">${isAdmin ? 'Admin' : 'Usuario'}</span></td>
+        <td>${fmtStamp(u.created_at)}</td>
+        <td>${u.last_sign_in_at ? fmtDateTime(u.last_sign_in_at) : 'Nunca'}</td>
+        <td>${fmtInt(Number(u.logins))}</td>
+        <td>${bmi ? `${fmt(bmi)} <span class="muted">· ${bmiCategory(bmi).label}</span>` : '—'}</td>
+        <td class="row-actions">
+          <button class="icon-btn" data-admin-role="${u.id}" ${isMe ? 'disabled title="No puedes cambiar tu propio rol"' : ''}
+            aria-label="${isAdmin ? 'Quitar rol de administrador a' : 'Hacer administrador a'} ${escapeHTML(u.name)}"
+            title="${isAdmin ? 'Quitar rol de administrador' : 'Hacer administrador'}">
+            <i class="fa-solid ${isAdmin ? 'fa-user-minus' : 'fa-user-shield'}" aria-hidden="true"></i></button>
+          <button class="icon-btn icon-btn--danger" data-admin-delete="${u.id}" ${isMe || isAdmin ? `disabled title="${isMe ? 'Borra tu cuenta desde Perfil y ajustes' : 'Quita primero el rol de administrador'}"` : 'title="Eliminar cuenta"'}
+            aria-label="Eliminar la cuenta de ${escapeHTML(u.name)}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+        </td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="muted">Ningún usuario coincide con la búsqueda.</td></tr>';
+  }
+
+  $('#admin-search').addEventListener('input', (e) => {
+    adminState.query = e.target.value;
+    renderAdminUsers();
+  });
+
+  $('#admin-refresh').addEventListener('click', (e) => {
+    withBusy(e.currentTarget, loadAdmin);
+  });
+
+  $('#admin-range').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-days]');
+    if (!btn) return;
+    adminState.range = Number(btn.dataset.days);
+    selectTab($('#admin-range'), btn);
+    try {
+      renderAdminLogins(await db.admin.loginsPerDay(adminState.range));
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  });
+
+  $('#admin-users').addEventListener('click', async (e) => {
+    const delBtn = e.target.closest('[data-admin-delete]');
+    const roleBtn = e.target.closest('[data-admin-role]');
+    if (delBtn) {
+      const user = adminState.users.find((u) => u.id === delBtn.dataset.adminDelete);
+      if (!user) return;
+      const ok = await confirmDialog({
+        title: 'Eliminar cuenta',
+        body: `Se borrará la cuenta de ${user.name} con todo su historial de peso y actividad. No se puede deshacer.`,
+        confirmLabel: 'Eliminar cuenta',
+        requireText: user.email,
+        requireLabel: `Escribe ${user.email} para confirmar`,
+      });
+      if (!ok) return;
+      try {
+        await db.admin.deleteUser(user.id);
+      } catch (err) {
+        toast(err.message, 'error', 6000);
+        return;
+      }
+      toast(`La cuenta de ${user.name} fue eliminada.`, 'success');
+      loadAdmin();
+    }
+    if (roleBtn) {
+      const user = adminState.users.find((u) => u.id === roleBtn.dataset.adminRole);
+      if (!user) return;
+      const makeAdmin = user.role !== 'admin';
+      const ok = await confirmDialog({
+        title: makeAdmin ? 'Hacer administrador' : 'Quitar rol de administrador',
+        body: makeAdmin
+          ? `${user.name} podrá ver las métricas y los datos de todas las personas, y eliminar cuentas.`
+          : `${user.name} dejará de tener acceso al panel de administración.`,
+        confirmLabel: makeAdmin ? 'Hacer administrador' : 'Quitar rol',
+      });
+      if (!ok) return;
+      try {
+        await db.admin.setRole(user.id, makeAdmin ? 'admin' : 'user');
+      } catch (err) {
+        toast(err.message, 'error');
+        return;
+      }
+      toast(makeAdmin ? `${user.name} ahora es administrador.` : `${user.name} ya no es administrador.`, 'success');
+      loadAdmin();
+    }
   });
 
   /* ------------------------------------------------------------------
@@ -1725,7 +2076,45 @@
   /* ------------------------------------------------------------------
      Arranque
      ------------------------------------------------------------------ */
-  setupReveal();
-  if (!storage.ok) $('#storage-warning').hidden = false;
-  route();
+  async function bootstrap() {
+    setupReveal();
+    if (!storage.ok) $('#storage-warning').hidden = false;
+
+    if (!db.ready) {
+      $('#config-warning').hidden = false;
+    } else {
+      db.onAuthChange((event) => {
+        // Supabase recomienda no hacer otras llamadas dentro del callback
+        setTimeout(() => handleAuthEvent(event), 0);
+      });
+      try {
+        // Llegar desde un enlace de correo (?code=...) cuenta como sesión nueva y activa
+        if (new URLSearchParams(location.search).has('code')) markSessionStart(storage.get(KEYS.remember, false));
+        const session = await db.getSession();
+        if (session) {
+          const idle = Date.now() - storage.get(KEYS.lastActive, 0) > SESSION_IDLE_MS;
+          const forgotten = !storage.get(KEYS.remember, false) && !storage.get(KEYS.alive, false, false);
+          if (idle || forgotten) {
+            // Sin "Recordarme" la sesión no sobrevive a cerrar el navegador
+            state.loggingOut = true;
+            await db.signOut().catch(() => {});
+            state.loggingOut = false;
+            if (idle && storage.get(KEYS.lastActive, 0)) toast('Tu sesión se cerró por inactividad. Vuelve a iniciar sesión.', 'info', 6000);
+          } else {
+            await loadUserData();
+            storage.set(KEYS.alive, true, false);
+          }
+        }
+      } catch (err) {
+        toast(`No pudimos conectar con el servidor: ${err.message}`, 'error', 7000);
+      }
+    }
+
+    $('#boot').hidden = true;
+    window.addEventListener('hashchange', route);
+    if (state.user && state.recovery) location.hash = '#/app/perfil?tab=seguridad';
+    route();
+  }
+
+  bootstrap();
 })();

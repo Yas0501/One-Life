@@ -970,3 +970,49 @@ button { cursor: pointer; background: none; border: 0; }
   .cta-band__inner { padding: 64px 20px; }
   .toasts { right: 16px; bottom: 16px; }
 }
+
+/* ==========================================================================
+   Carga inicial y administración
+   ========================================================================== */
+.boot {
+  position: fixed; inset: 0; z-index: 90;
+  display: grid; place-items: center;
+  background: var(--bg);
+}
+.boot .wordmark__mark { width: 28px; height: 28px; animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.35); box-shadow: 0 0 28px rgba(229, 72, 59, .6); } }
+
+.sidenav__admin { margin-top: 10px; position: relative; }
+.sidenav__admin::before { content: ''; position: absolute; left: 14px; right: 14px; top: -6px; height: 1px; background: var(--hairline-strong); }
+.sidenav__admin i { color: var(--accent) !important; }
+
+.toolbar--center { align-items: center; }
+.toolbar--center .lead { margin: 0; }
+.card__head--wrap { flex-wrap: wrap; }
+.tabs--compact { margin: 0; gap: 4px; }
+.tabs--compact .tab { height: 32px; padding: 0 12px; font-size: 13px; }
+.tile--loading { opacity: .55; }
+.tile--loading .tile__value { color: var(--faint); }
+
+.dist { list-style: none; padding: 0; display: grid; gap: 14px; margin-bottom: 14px; }
+.dist li { display: grid; grid-template-columns: 110px 1fr 64px; gap: 14px; align-items: center; font-size: 14px; }
+.dist__bar { height: 12px; border-radius: 12px; background: var(--bg-2); overflow: hidden; }
+.dist__bar span { display: block; height: 100%; min-width: 2px; border-radius: 12px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); transform-origin: left; animation: fill 1.1s var(--ease-out) .15s both; }
+.dist__value { text-align: right; font-weight: 500; font-variant-numeric: tabular-nums; }
+.dist__value small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+
+.field--search { min-width: min(280px, 100%); }
+.field--search input { height: 42px; border-radius: var(--r-pill); padding-left: 40px; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 16px center; }
+.table-wrap--tall { max-height: 520px; }
+.data-table--admin td, .data-table--admin th { white-space: nowrap; }
+.data-table--admin td:last-child { width: auto; }
+.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.icon-btn:disabled { opacity: .35; cursor: not-allowed; }
+.icon-btn--danger:not(:disabled):hover { background: var(--accent); color: var(--white); }
+.badge--sm { height: 24px; padding: 0 10px; font-size: 12px; }
+
+@media (max-width: 640px) {
+  .dist li { grid-template-columns: 1fr 56px; }
+  .dist__bar { grid-column: 1 / -1; grid-row: 2; }
+  .toolbar--center { flex-direction: column; align-items: flex-start; }
+}
