@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>One Life — Conoce tu peso, cuida tu vida</title>
+  <meta name="description" content="One Life: índice de masa corporal, métricas, plan de alimentación, actividad física y seguimiento de progreso.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <div class="banner" id="storage-warning" role="alert" hidden>
+    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+    Tu navegador bloquea el almacenamiento local. Podrás navegar, pero tu cuenta y tus datos no se guardarán.
+  </div>
+
+  <!-- ============================================================
+       SITIO PÚBLICO
+       ============================================================ -->
+  <div id="public" class="public">
+    <header class="topnav" id="topnav">
+      <a href="#/inicio" class="wordmark" data-scroll="top" aria-label="One Life, inicio"><span class="wordmark__mark" aria-hidden="true"></span>one life</a>
+      <nav class="topnav__group topnav__group--center" aria-label="Secciones">
+        <a href="#/inicio" class="navlink is-active" data-scroll="top">Inicio</a>
+        <a href="#/inicio" class="navlink" data-scroll="imc">El IMC</a>
+        <a href="#/inicio" class="navlink" data-scroll="funciones">Funciones</a>
+        <a href="#/inicio" class="navlink" data-scroll="faq">FAQ</a>
+      </nav>
+      <div class="topnav__group topnav__group--end">
+        <a href="#/acceso" class="navlink">Iniciar sesión</a>
+        <a href="#/acceso?modo=registro" class="btn btn--primary btn--sm">Comenzar</a>
+      </div>
+      <button class="icon-btn topnav__menu" id="public-menu-btn" aria-label="Abrir menú" aria-expanded="false" aria-controls="public-menu">
+        <i class="fa-solid fa-bars" aria-hidden="true"></i>
+      </button>
+      <div class="topnav__drawer" id="public-menu" hidden>
+        <a href="#/inicio" class="navlink" data-scroll="imc">El IMC</a>
+        <a href="#/inicio" class="navlink" data-scroll="funciones">Funciones</a>
+        <a href="#/inicio" class="navlink" data-scroll="faq">FAQ</a>
+        <a href="#/acceso" class="navlink">Iniciar sesión</a>
+        <a href="#/acceso?modo=registro" class="btn btn--primary">Comenzar</a>
+      </div>
+    </header>
+
+    <!-- ---------- INICIO / INFORMACIÓN ---------- -->
+    <main class="view-public" data-public-view="inicio" id="contenido">
+      <section class="hero" id="top">
+        <div class="hero__glow" aria-hidden="true"></div>
+        <div class="hero__copy">
+          <p class="eyebrow" data-reveal>Tu salud · Una sola vida</p>
+          <h1 class="display" data-reveal data-split>Conoce tu peso.<br>Cuida tu vida.</h1>
+          <p class="hero__sub" data-reveal style="--d:.55s">One Life convierte tu índice de masa corporal en métricas claras, un plan de alimentación a tu medida y un seguimiento real de tu progreso. Todo en un solo lugar.</p>
+          <div class="hero__actions" data-reveal style="--d:.7s">
+            <a href="#/acceso?modo=registro" class="btn btn--primary btn--lg">Crear cuenta gratis <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            <a href="#/acceso" class="btn btn--ghost btn--lg">Ya tengo cuenta</a>
+          </div>
+          <p class="hero__note" data-reveal style="--d:.8s">Gratis · 30 s para tu primer cálculo · Datos en tu dispositivo</p>
+        </div>
+        <div class="hero__media" data-reveal="zoom" style="--d:.35s">
+          <div class="hero__visual" aria-hidden="true">
+            <svg viewBox="0 0 320 320" class="hero__ring">
+              <defs>
+                <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#ff8a6b"/>
+                  <stop offset="1" stop-color="#e5483b"/>
+                </linearGradient>
+              </defs>
+              <circle cx="160" cy="160" r="140" class="ring-track" pathLength="100"/>
+              <circle cx="160" cy="160" r="140" class="ring-value ring-value--hero" pathLength="100" stroke-dasharray="46 100" transform="rotate(-90 160 160)"/>
+              <circle cx="160" cy="160" r="112" class="ring-inner"/>
+            </svg>
+            <div class="hero__ring-label">
+              <span class="hero__ring-kicker">IMC</span>
+              <span class="hero__ring-value">22.4</span>
+              <span class="hero__ring-cat">Peso normal</span>
+            </div>
+          </div>
+          <span class="chip chip--float chip--a" aria-hidden="true"><i class="fa-solid fa-utensils"></i> Plan de 1 590 kcal</span>
+          <span class="chip chip--float chip--b" aria-hidden="true"><i class="fa-solid fa-arrow-trend-down"></i> −3.7 kg en 2 meses</span>
+          <span class="chip chip--float chip--c" aria-hidden="true"><i class="fa-solid fa-person-running"></i> 35 min hoy</span>
+          <a href="#/acceso" class="hero__lock"><i class="fa-solid fa-lock" aria-hidden="true"></i> Inicia sesión para calcular el tuyo</a>
+        </div>
+        <dl class="hero__stats">
+          <div><dt data-count="6">6</dt><dd>Categorías OMS</dd></div>
+          <div><dt data-count="6">6</dt><dd>Módulos personales</dd></div>
+          <div><dt data-count="30" data-suffix=" s">30 s</dt><dd>Para tu primer cálculo</dd></div>
+          <div><dt data-count="100" data-suffix="%">100%</dt><dd>Datos en tu dispositivo</dd></div>
+        </dl>
+      </section>
+
+      <section class="section section--cream" id="imc">
+        <div class="container split">
+          <div>
+            <p class="eyebrow eyebrow--ink">Información</p>
+            <h2 class="h-lg">¿Qué es el índice de masa corporal?</h2>
+            <p class="body-lg">El IMC relaciona tu peso con tu altura para estimar si estás en un rango saludable. Es la referencia que usa la Organización Mundial de la Salud para clasificar el peso en adultos y el punto de partida de todas las métricas de One Life.</p>
+            <div class="formula">
+              <span class="formula__label">Fórmula</span>
+              <span class="formula__expr">IMC = peso (kg) ÷ altura² (m)</span>
+              <span class="formula__example">Ejemplo: 70 kg ÷ (1.75 m × 1.75 m) = <strong>22.9</strong></span>
+            </div>
+          </div>
+          <div>
+            <table class="cat-table" aria-label="Clasificación del IMC en adultos">
+              <thead><tr><th>Clasificación</th><th>IMC</th></tr></thead>
+              <tbody>
+                <tr><td>Bajo peso</td><td>&lt; 18.5</td></tr>
+                <tr class="is-highlight"><td>Peso normal</td><td>18.5 – 24.9</td></tr>
+                <tr><td>Sobrepeso</td><td>25 – 29.9</td></tr>
+                <tr><td>Obesidad grado I</td><td>30 – 34.9</td></tr>
+                <tr><td>Obesidad grado II</td><td>35 – 39.9</td></tr>
+                <tr><td>Obesidad grado III</td><td>≥ 40</td></tr>
+              </tbody>
+            </table>
+            <p class="caption">Válido para adultos de 18 años o más. En niños y adolescentes se usan percentiles por edad y sexo.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="funciones">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">Funciones</p>
+            <h2 class="h-lg">Inicia sesión y desbloquea todo</h2>
+            <p class="body-lg muted">La información es libre. Las herramientas personales se activan cuando creas tu cuenta, para que tus datos queden guardados y tus métricas se adapten a ti.</p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature">
+              <i class="fa-solid fa-calculator feature__icon" aria-hidden="true"></i>
+              <h3>Calculadora IMC</h3>
+              <p>Tu IMC, tu clasificación y el rango de peso saludable para tu altura.</p>
+              <a href="#/acceso" class="feature__lock"><i class="fa-solid fa-lock" aria-hidden="true"></i> Requiere sesión</a>
+            </article>
+            <article class="feature">
+              <i class="fa-solid fa-utensils feature__icon" aria-hidden="true"></i>
+              <h3>Plan de alimentación</h3>
+              <p>Calorías y macronutrientes calculados según tu cuerpo, actividad y objetivo.</p>
+              <a href="#/acceso" class="feature__lock"><i class="fa-solid fa-lock" aria-hidden="true"></i> Requiere sesión</a>
+            </article>
+            <article class="feature">
+              <i class="fa-solid fa-person-running feature__icon" aria-hidden="true"></i>
+              <h3>Actividad física</h3>
+              <p>Registra tus minutos, pasos y calorías, con ejercicios sugeridos para tu IMC.</p>
+              <a href="#/acceso" class="feature__lock"><i class="fa-solid fa-lock" aria-hidden="true"></i> Requiere sesión</a>
+            </article>
+            <article class="feature">
+              <i class="fa-solid fa-chart-line feature__icon" aria-hidden="true"></i>
+              <h3>Tu progreso</h3>
+              <p>Gráficas de peso e IMC por semana, mes o trimestre y estadísticas de cambio.</p>
+              <a href="#/acceso" class="feature__lock"><i class="fa-solid fa-lock" aria-hidden="true"></i> Requiere sesión</a>
+            </article>
+            <article class="feature">
+              <i class="fa-solid fa-book-open feature__icon" aria-hidden="true"></i>
+              <h3>Información para tu peso</h3>
+              <p>Artículos de nutrición, ejercicio, hábitos y salud mental, con lectura de tu caso.</p>
+              <a href="#/acceso" class="feature__lock"><i class="fa-solid fa-lock" aria-hidden="true"></i> Requiere sesión</a>
+            </article>
+            <article class="feature">
+              <i class="fa-solid fa-user-gear feature__icon" aria-hidden="true"></i>
+              <h3>Perfil editable</h3>
+              <p>Datos personales, objetivos, notificaciones y seguridad de tu cuenta.</p>
+              <a href="#/acceso" class="feature__lock"><i class="fa-solid fa-lock" aria-hidden="true"></i> Requiere sesión</a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--cream">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow eyebrow--ink">Cómo funciona</p>
+            <h2 class="h-lg">Tres pasos, una rutina</h2>
+          </div>
+          <ol class="steps">
+            <li><span class="steps__num">01</span><h3>Crea tu cuenta</h3><p>Solo nombre, correo y una contraseña segura. Tus datos se guardan en tu dispositivo.</p></li>
+            <li><span class="steps__num">02</span><h3>Calcula tu IMC</h3><p>Ingresa peso, altura y edad. Obtén tu clasificación y tu rango saludable.</p></li>
+            <li><span class="steps__num">03</span><h3>Sigue tu progreso</h3><p>Registra peso y actividad. One Life ajusta tu plan y te muestra la evolución.</p></li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section" id="faq">
+        <div class="container container--narrow">
+          <div class="section-head">
+            <p class="eyebrow">Preguntas frecuentes</p>
+            <h2 class="h-lg">Antes de empezar</h2>
+          </div>
+          <div class="accordion">
+            <details>
+              <summary>¿El IMC sirve para todas las personas?</summary>
+              <p>Es una buena referencia general para adultos, pero no distingue entre músculo y grasa. Deportistas con mucha masa muscular, embarazadas y personas mayores pueden obtener resultados que no reflejan su salud real. Úsalo como punto de partida, no como diagnóstico.</p>
+            </details>
+            <details>
+              <summary>¿Por qué necesito iniciar sesión?</summary>
+              <p>Para guardar tus mediciones, calcular tu plan con tus datos y mostrarte tu evolución en el tiempo. Sin cuenta no hay historial que analizar.</p>
+            </details>
+            <details>
+              <summary>¿Dónde se guardan mis datos?</summary>
+              <p>En esta versión, todo se guarda en el almacenamiento local de tu navegador. Tu contraseña nunca se guarda en texto plano: se almacena cifrada con un hash.</p>
+            </details>
+            <details>
+              <summary>¿Sirve para niños y adolescentes?</summary>
+              <p>La calculadora te avisará si tienes menos de 18 años: en ese caso la clasificación adulta no aplica y se recomienda consultar las tablas de percentiles con un profesional de salud.</p>
+            </details>
+            <details>
+              <summary>¿One Life reemplaza a mi médico?</summary>
+              <p>No. One Life es una herramienta informativa. Ante cualquier duda sobre tu salud o tu peso, consulta a un profesional.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-band">
+        <div class="container cta-band__inner">
+          <h2 class="display display--md">Una vida.<br>Hazla contar.</h2>
+          <a href="#/acceso?modo=registro" class="btn btn--primary btn--lg">Comenzar ahora <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="container footer__inner">
+          <span class="wordmark wordmark--sm"><span class="wordmark__mark" aria-hidden="true"></span>one life</span>
+          <p class="footer__tagline">Salud · Equilibrio · Disciplina · Resultados</p>
+          <p class="caption muted">One Life es una herramienta informativa y no sustituye el consejo médico profesional.</p>
+        </div>
+      </footer>
+    </main>
+
+    <!-- ---------- ACCESO: INICIO DE SESIÓN / REGISTRO ---------- -->
+    <main class="view-public auth" data-public-view="acceso" hidden>
+      <div class="auth__panel">
+        <a href="#/inicio" class="btn btn--link auth__back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver al inicio</a>
+        <div class="auth__box">
+          <h1 class="h-md">Bienvenido a One Life</h1>
+          <p class="muted">Inicia sesión para continuar con tu camino hacia una mejor versión.</p>
+
+          <div class="tabs" role="tablist" aria-label="Acceso">
+            <button class="tab is-active" role="tab" id="tab-login" aria-selected="true" aria-controls="login-form" data-auth-tab="login">Iniciar sesión</button>
+            <button class="tab" role="tab" id="tab-register" aria-selected="false" aria-controls="register-form" data-auth-tab="registro">Crear cuenta</button>
+          </div>
+
+          <form id="login-form" class="form" role="tabpanel" aria-labelledby="tab-login" novalidate>
+            <div class="form-alert" role="alert" hidden></div>
+            <div class="field">
+              <label for="login-email">Correo electrónico</label>
+              <input id="login-email" name="email" type="email" autocomplete="email" maxlength="80" placeholder="tu@correo.com" aria-describedby="login-email-error">
+              <span class="field__error" id="login-email-error"></span>
+            </div>
+            <div class="field">
+              <label for="login-password">Contraseña</label>
+              <div class="input-group">
+                <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="64" placeholder="••••••••" aria-describedby="login-password-error">
+                <button type="button" class="input-group__btn" data-toggle-password="login-password" aria-label="Mostrar contraseña"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+              </div>
+              <span class="caps-hint" data-caps-for="login-password" hidden><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Bloq Mayús está activado</span>
+              <span class="field__error" id="login-password-error"></span>
+            </div>
+            <div class="form-row form-row--between">
+              <label class="check"><input type="checkbox" name="remember"> <span>Recordarme</span></label>
+              <button type="button" class="btn btn--link btn--xs" id="forgot-btn">¿Olvidaste tu contraseña?</button>
+            </div>
+            <button type="submit" class="btn btn--primary btn--block">Iniciar sesión</button>
+            <p class="caption muted center">¿No tienes cuenta? <button type="button" class="link" data-auth-tab="registro">Crea una aquí</button></p>
+          </form>
+
+          <form id="register-form" class="form" role="tabpanel" aria-labelledby="tab-register" novalidate hidden>
+            <div class="form-alert" role="alert" hidden></div>
+            <div class="field">
+              <label for="reg-name">Nombre</label>
+              <input id="reg-name" name="name" type="text" autocomplete="name" maxlength="40" placeholder="Tu nombre" aria-describedby="reg-name-error">
+              <span class="field__error" id="reg-name-error"></span>
+            </div>
+            <div class="field">
+              <label for="reg-email">Correo electrónico</label>
+              <input id="reg-email" name="email" type="email" autocomplete="email" maxlength="80" placeholder="tu@correo.com" aria-describedby="reg-email-error">
+              <span class="field__error" id="reg-email-error"></span>
+            </div>
+            <div class="field">
+              <label for="reg-password">Contraseña</label>
+              <div class="input-group">
+                <input id="reg-password" name="password" type="password" autocomplete="new-password" maxlength="64" placeholder="Mínimo 8 caracteres" aria-describedby="reg-password-error reg-password-rules">
+                <button type="button" class="input-group__btn" data-toggle-password="reg-password" aria-label="Mostrar contraseña"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+              </div>
+              <div class="strength" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+              <ul class="rules" id="reg-password-rules">
+                <li data-rule="length">8 caracteres o más</li>
+                <li data-rule="upper">Una mayúscula</li>
+                <li data-rule="lower">Una minúscula</li>
+                <li data-rule="number">Un número</li>
+              </ul>
+              <span class="caps-hint" data-caps-for="reg-password" hidden><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Bloq Mayús está activado</span>
+              <span class="field__error" id="reg-password-error"></span>
+            </div>
+            <div class="field">
+              <label for="reg-confirm">Confirmar contraseña</label>
+              <input id="reg-confirm" name="confirm" type="password" autocomplete="new-password" maxlength="64" placeholder="Repite la contraseña" aria-describedby="reg-confirm-error">
+              <span class="field__error" id="reg-confirm-error"></span>
+            </div>
+            <div class="field">
+              <label class="check"><input type="checkbox" id="reg-terms" name="terms" aria-describedby="reg-terms-error"> <span>Entiendo que One Life es informativo y no sustituye el consejo médico.</span></label>
+              <span class="field__error" id="reg-terms-error"></span>
+            </div>
+            <button type="submit" class="btn btn--primary btn--block">Crear cuenta</button>
+            <p class="caption muted center">¿Ya tienes cuenta? <button type="button" class="link" data-auth-tab="login">Inicia sesión</button></p>
+          </form>
+        </div>
+      </div>
+      <aside class="auth__art" aria-hidden="true">
+        <p class="display display--md">Disciplina hoy,<br>resultados mañana.</p>
+        <p class="auth__art-foot">Cuerpo sano.<br>Mente fuerte.<br>Vida plena.</p>
+      </aside>
+    </main>
+  </div>
+
+  <!-- ============================================================
+       APLICACIÓN (REQUIERE SESIÓN)
+       ============================================================ -->
+  <div id="app" class="app" hidden>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__head">
+        <a href="#/app/resumen" class="wordmark wordmark--sm"><span class="wordmark__mark" aria-hidden="true"></span>one life</a>
+        <button class="icon-btn sidebar__close" id="sidebar-close" aria-label="Cerrar menú"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <nav class="sidenav" aria-label="Aplicación">
+        <a href="#/app/resumen" data-nav="resumen"><i class="fa-solid fa-house" aria-hidden="true"></i> Inicio</a>
+        <a href="#/app/calculadora" data-nav="calculadora"><i class="fa-solid fa-calculator" aria-hidden="true"></i> Calculadora IMC</a>
+        <a href="#/app/plan" data-nav="plan"><i class="fa-solid fa-utensils" aria-hidden="true"></i> Plan de alimentación</a>
+        <a href="#/app/actividad" data-nav="actividad"><i class="fa-solid fa-person-running" aria-hidden="true"></i> Actividad física</a>
+        <a href="#/app/progreso" data-nav="progreso"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Progreso</a>
+        <a href="#/app/informacion" data-nav="informacion"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Información</a>
+        <a href="#/app/perfil" data-nav="perfil"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Perfil y ajustes</a>
+      </nav>
+      <div class="sidebar__user">
+        <span class="avatar" data-bind="initials"></span>
+        <div class="sidebar__user-text">
+          <strong data-bind="name"></strong>
+          <span data-bind="email"></span>
+        </div>
+        <button class="icon-btn" data-action="logout" aria-label="Cerrar sesión" title="Cerrar sesión"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i></button>
+      </div>
+    </aside>
+    <div class="scrim" id="scrim" hidden></div>
+
+    <div class="app__main">
+      <header class="apptop">
+        <button class="icon-btn apptop__menu" id="sidebar-open" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
+        <div>
+          <h1 class="apptop__title" id="page-title">Inicio</h1>
+          <p class="apptop__date" id="today-label"></p>
+        </div>
+        <div class="apptop__user">
+          <span class="muted">Hola,</span> <strong data-bind="firstName"></strong>
+          <span class="avatar avatar--sm" data-bind="initials"></span>
+        </div>
+      </header>
+
+      <main class="app__content" id="app-content">
+        <!-- ---------- RESUMEN ---------- -->
+        <section class="view" data-view="resumen" aria-labelledby="page-title">
+          <div class="notice" id="profile-banner" hidden>
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <p><strong>Completa tu perfil.</strong> Necesitamos tu edad, sexo, altura y peso para calcular métricas precisas.</p>
+            <a href="#/app/perfil" class="btn btn--primary btn--sm">Completar perfil</a>
+          </div>
+
+          <div class="tiles">
+            <article class="tile">
+              <span class="tile__label">IMC actual</span>
+              <span class="tile__value" id="dash-bmi">—</span>
+              <span class="tile__meta" id="dash-bmi-cat">Sin cálculo aún</span>
+            </article>
+            <article class="tile">
+              <span class="tile__label">Peso</span>
+              <span class="tile__value" id="dash-weight">—</span>
+              <span class="tile__meta" id="dash-weight-delta">Registra tu peso</span>
+            </article>
+            <article class="tile">
+              <span class="tile__label">Calorías objetivo</span>
+              <span class="tile__value" id="dash-kcal">—</span>
+              <span class="tile__meta" id="dash-kcal-meta">kcal / día</span>
+            </article>
+            <article class="tile tile--ring">
+              <div>
+                <span class="tile__label">Actividad hoy</span>
+                <span class="tile__value" id="dash-minutes">0</span>
+                <span class="tile__meta" id="dash-minutes-meta">de 30 min</span>
+              </div>
+              <svg viewBox="0 0 64 64" class="mini-ring" aria-hidden="true">
+                <circle cx="32" cy="32" r="26" class="ring-track" pathLength="100"/>
+                <circle cx="32" cy="32" r="26" class="ring-value" id="dash-ring" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 32 32)"/>
+              </svg>
+            </article>
+          </div>
+
+          <div class="grid-2">
+            <article class="card">
+              <div class="card__head">
+                <h2 class="h-sm">Actividad de la semana</h2>
+                <a href="#/app/actividad" class="btn btn--link btn--xs">Registrar <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+              </div>
+              <div class="chart" id="dash-week-chart"></div>
+            </article>
+            <article class="card">
+              <div class="card__head">
+                <h2 class="h-sm">Evolución del IMC</h2>
+                <a href="#/app/progreso" class="btn btn--link btn--xs">Ver progreso <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+              </div>
+              <div class="chart" id="dash-bmi-chart"></div>
+            </article>
+          </div>
+
+          <div class="grid-2">
+            <article class="card card--accent">
+              <p class="quote">“Pequeños hábitos, grandes cambios.”</p>
+              <p class="caption">One Life · Una mejor versión de ti, cada día.</p>
+            </article>
+            <article class="card">
+              <h2 class="h-sm">Tus próximos pasos</h2>
+              <ul class="checklist" id="dash-steps"></ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- ---------- CALCULADORA ---------- -->
+        <section class="view" data-view="calculadora" hidden>
+          <p class="lead">Conoce tu índice de masa corporal y obtén recomendaciones personalizadas.</p>
+          <div class="grid-calc">
+            <form class="card form" id="bmi-form" novalidate>
+              <h2 class="h-sm">Tus datos</h2>
+              <div class="form-alert" role="alert" hidden></div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="bmi-weight">Peso (kg)</label>
+                  <input id="bmi-weight" name="weight" inputmode="decimal" placeholder="70" maxlength="6" aria-describedby="bmi-weight-error">
+                  <span class="field__error" id="bmi-weight-error"></span>
+                </div>
+                <div class="field">
+                  <label for="bmi-height">Altura (cm)</label>
+                  <input id="bmi-height" name="height" inputmode="decimal" placeholder="175" maxlength="6" aria-describedby="bmi-height-error">
+                  <span class="field__error" id="bmi-height-error"></span>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="bmi-age">Edad (años)</label>
+                  <input id="bmi-age" name="age" inputmode="numeric" placeholder="30" maxlength="3" aria-describedby="bmi-age-error">
+                  <span class="field__error" id="bmi-age-error"></span>
+                </div>
+                <div class="field">
+                  <label for="bmi-sex">Sexo</label>
+                  <select id="bmi-sex" name="sex" aria-describedby="bmi-sex-error">
+                    <option value="">Selecciona</option>
+                    <option value="m">Masculino</option>
+                    <option value="f">Femenino</option>
+                    <option value="x">Prefiero no decir</option>
+                  </select>
+                  <span class="field__error" id="bmi-sex-error"></span>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn--primary">Calcular IMC</button>
+                <button type="reset" class="btn btn--ghost">Limpiar</button>
+              </div>
+            </form>
+
+            <article class="card result" id="bmi-result" aria-live="polite">
+              <div class="result__empty" id="bmi-empty">
+                <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+                <p>Ingresa tu peso y altura para ver tu resultado.</p>
+              </div>
+              <div class="result__body" id="bmi-body" hidden>
+                <div class="gauge">
+                  <svg viewBox="0 0 200 200" aria-hidden="true">
+                    <circle cx="100" cy="100" r="84" class="ring-track" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 100 100)"/>
+                    <circle cx="100" cy="100" r="84" class="ring-value" id="bmi-gauge" pathLength="100" stroke-dasharray="0 100" transform="rotate(135 100 100)"/>
+                  </svg>
+                  <div class="gauge__label">
+                    <span class="gauge__value" id="bmi-value">0</span>
+                    <span class="gauge__unit">IMC</span>
+                  </div>
+                </div>
+                <span class="badge badge--accent" id="bmi-cat">—</span>
+                <p class="result__msg" id="bmi-msg"></p>
+                <dl class="result__facts">
+                  <div><dt>Peso saludable para tu altura</dt><dd id="bmi-range">—</dd></div>
+                  <div><dt>Diferencia con el rango</dt><dd id="bmi-diff">—</dd></div>
+                </dl>
+                <p class="warning" id="bmi-warning" hidden></p>
+                <button type="button" class="btn btn--ghost btn--block" id="bmi-save">
+                  <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Guardar en mi progreso
+                </button>
+              </div>
+            </article>
+
+            <article class="card">
+              <h2 class="h-sm">Clasificación</h2>
+              <ul class="scale" id="bmi-scale"></ul>
+              <p class="caption muted">Clasificación de la OMS para adultos.</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- ---------- PLAN DE ALIMENTACIÓN ---------- -->
+        <section class="view" data-view="plan" hidden>
+          <div class="grid-plan">
+            <article class="card card--accent kcal-card">
+              <span class="tile__label">Tu objetivo diario</span>
+              <span class="kcal-card__value"><span id="plan-kcal">—</span> <small>kcal</small></span>
+              <p class="caption" id="plan-kcal-explain">Completa tu perfil para calcular tus calorías.</p>
+            </article>
+            <article class="card">
+              <h2 class="h-sm">Macronutrientes</h2>
+              <div class="macros" id="plan-macros"></div>
+            </article>
+          </div>
+
+          <div class="tabs tabs--pills" role="tablist" aria-label="Tipo de comida" id="plan-tabs">
+            <button class="tab is-active" role="tab" aria-selected="true" data-meal="recomendado">Recomendado</button>
+            <button class="tab" role="tab" aria-selected="false" data-meal="desayuno">Desayunos</button>
+            <button class="tab" role="tab" aria-selected="false" data-meal="almuerzo">Almuerzos</button>
+            <button class="tab" role="tab" aria-selected="false" data-meal="cena">Cenas</button>
+            <button class="tab" role="tab" aria-selected="false" data-meal="snack">Snacks</button>
+          </div>
+          <p class="caption muted" id="plan-tab-note"></p>
+          <div class="meal-grid" id="plan-meals"></div>
+
+          <div class="notice notice--plain">
+            <i class="fa-solid fa-seedling" aria-hidden="true"></i>
+            <p><strong>Tu plan personalizado.</strong> Basado en tu IMC, objetivo y nivel de actividad. Cambia tus objetivos en <a href="#/app/perfil?tab=objetivos" class="link">Perfil y ajustes</a>.</p>
+          </div>
+        </section>
+
+        <!-- ---------- ACTIVIDAD FÍSICA ---------- -->
+        <section class="view" data-view="actividad" hidden>
+          <div class="grid-activity">
+            <article class="card activity-today">
+              <h2 class="h-sm">Tu actividad de hoy</h2>
+              <div class="activity-today__body">
+                <div class="gauge gauge--sm">
+                  <svg viewBox="0 0 200 200" aria-hidden="true">
+                    <circle cx="100" cy="100" r="84" class="ring-track" pathLength="100"/>
+                    <circle cx="100" cy="100" r="84" class="ring-value" id="act-ring" pathLength="100" stroke-dasharray="0 100" transform="rotate(-90 100 100)"/>
+                  </svg>
+                  <div class="gauge__label">
+                    <span class="gauge__value" id="act-minutes">0</span>
+                    <span class="gauge__unit" id="act-goal">de 30 min</span>
+                  </div>
+                </div>
+                <dl class="facts">
+                  <div><dt><i class="fa-solid fa-shoe-prints" aria-hidden="true"></i> Pasos</dt><dd id="act-steps">0</dd></div>
+                  <div><dt><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Distancia</dt><dd id="act-km">0 km</dd></div>
+                  <div><dt><i class="fa-solid fa-fire" aria-hidden="true"></i> Calorías</dt><dd id="act-kcal">0 kcal</dd></div>
+                </dl>
+              </div>
+            </article>
+
+            <form class="card form" id="activity-form" novalidate>
+              <h2 class="h-sm">Registrar actividad</h2>
+              <div class="form-alert" role="alert" hidden></div>
+              <div class="field">
+                <label for="act-type">Tipo de actividad</label>
+                <select id="act-type" name="type" aria-describedby="act-type-error"></select>
+                <span class="field__error" id="act-type-error"></span>
+              </div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="act-min">Minutos</label>
+                  <input id="act-min" name="minutes" inputmode="numeric" maxlength="3" placeholder="30" aria-describedby="act-min-error">
+                  <span class="field__error" id="act-min-error"></span>
+                </div>
+                <div class="field">
+                  <label for="act-steps-in">Pasos <span class="optional">(opcional)</span></label>
+                  <input id="act-steps-in" name="steps" inputmode="numeric" maxlength="6" placeholder="4000" aria-describedby="act-steps-in-error">
+                  <span class="field__error" id="act-steps-in-error"></span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="act-date">Fecha</label>
+                <input id="act-date" name="date" type="date" aria-describedby="act-date-error">
+                <span class="field__error" id="act-date-error"></span>
+              </div>
+              <button type="submit" class="btn btn--primary btn--block"><i class="fa-solid fa-plus" aria-hidden="true"></i> Añadir actividad</button>
+            </form>
+
+            <article class="card">
+              <div class="card__head">
+                <h2 class="h-sm">Ejercicios recomendados</h2>
+                <span class="badge" id="act-rec-cat">General</span>
+              </div>
+              <ul class="exercise-list" id="act-recommended"></ul>
+            </article>
+          </div>
+
+          <div class="grid-2">
+            <article class="card">
+              <h2 class="h-sm">Últimos 7 días</h2>
+              <div class="chart" id="act-week-chart"></div>
+            </article>
+            <article class="card">
+              <h2 class="h-sm">Registros recientes</h2>
+              <ul class="log-list" id="act-log"></ul>
+            </article>
+          </div>
+
+          <blockquote class="pull-quote">“El movimiento es la medicina más poderosa.”</blockquote>
+        </section>
+
+        <!-- ---------- PROGRESO ---------- -->
+        <section class="view" data-view="progreso" hidden>
+          <div class="toolbar">
+            <div class="tabs tabs--pills" role="tablist" aria-label="Periodo" id="prog-range">
+              <button class="tab is-active" role="tab" aria-selected="true" data-range="7">1 semana</button>
+              <button class="tab" role="tab" aria-selected="false" data-range="30">1 mes</button>
+              <button class="tab" role="tab" aria-selected="false" data-range="90">3 meses</button>
+              <button class="tab" role="tab" aria-selected="false" data-range="0">Todo</button>
+            </div>
+            <div class="tabs tabs--pills" role="tablist" aria-label="Métrica" id="prog-metric">
+              <button class="tab is-active" role="tab" aria-selected="true" data-metric="bmi">IMC</button>
+              <button class="tab" role="tab" aria-selected="false" data-metric="weight">Peso</button>
+            </div>
+          </div>
+
+          <div class="grid-progress">
+            <article class="card">
+              <div class="chart chart--lg" id="prog-chart"></div>
+            </article>
+            <div class="stat-grid" id="prog-stats"></div>
+          </div>
+
+          <div class="grid-2">
+            <form class="card form" id="record-form" novalidate>
+              <h2 class="h-sm">Añadir registro de peso</h2>
+              <div class="form-alert" role="alert" hidden></div>
+              <div class="form-row">
+                <div class="field">
+                  <label for="rec-weight">Peso (kg)</label>
+                  <input id="rec-weight" name="weight" inputmode="decimal" maxlength="6" placeholder="70.5" aria-describedby="rec-weight-error">
+                  <span class="field__error" id="rec-weight-error"></span>
+                </div>
+                <div class="field">
+                  <label for="rec-date">Fecha</label>
+                  <input id="rec-date" name="date" type="date" aria-describedby="rec-date-error">
+                  <span class="field__error" id="rec-date-error"></span>
+                </div>
+              </div>
+              <button type="submit" class="btn btn--primary"><i class="fa-solid fa-plus" aria-hidden="true"></i> Guardar registro</button>
+            </form>
+            <article class="card">
+              <div class="card__head">
+                <h2 class="h-sm">Historial</h2>
+                <span class="caption muted" id="rec-count"></span>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Fecha</th><th>Peso</th><th>IMC</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+                  <tbody id="rec-table"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ---------- INFORMACIÓN ---------- -->
+        <section class="view" data-view="informacion" hidden>
+          <article class="card card--accent personal-insight" id="info-personal"></article>
+          <div class="info-grid" id="info-grid"></div>
+          <article class="card article" id="info-article" tabindex="-1" hidden></article>
+        </section>
+
+        <!-- ---------- PERFIL Y AJUSTES ---------- -->
+        <section class="view" data-view="perfil" hidden>
+          <div class="tabs tabs--pills" role="tablist" aria-label="Ajustes" id="profile-tabs">
+            <button class="tab is-active" role="tab" aria-selected="true" data-ptab="perfil">Perfil</button>
+            <button class="tab" role="tab" aria-selected="false" data-ptab="objetivos">Objetivos</button>
+            <button class="tab" role="tab" aria-selected="false" data-ptab="notificaciones">Notificaciones</button>
+            <button class="tab" role="tab" aria-selected="false" data-ptab="seguridad">Seguridad</button>
+          </div>
+
+          <div class="grid-profile">
+            <div>
+              <!-- Perfil -->
+              <form class="card form" id="profile-form" data-ppanel="perfil" novalidate>
+                <div class="profile-head">
+                  <span class="avatar avatar--lg" data-bind="initials"></span>
+                  <div>
+                    <strong class="h-sm" data-bind="name"></strong>
+                    <p class="muted" data-bind="email"></p>
+                  </div>
+                </div>
+                <div class="form-alert" role="alert" hidden></div>
+                <div class="form-row">
+                  <div class="field">
+                    <label for="pf-name">Nombre</label>
+                    <input id="pf-name" name="name" maxlength="40" autocomplete="name" aria-describedby="pf-name-error">
+                    <span class="field__error" id="pf-name-error"></span>
+                  </div>
+                  <div class="field">
+                    <label for="pf-email">Correo electrónico</label>
+                    <input id="pf-email" name="email" readonly aria-describedby="pf-email-hint">
+                    <span class="caption muted" id="pf-email-hint">El correo identifica tu cuenta y no se puede cambiar.</span>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="field">
+                    <label for="pf-age">Edad (años)</label>
+                    <input id="pf-age" name="age" inputmode="numeric" maxlength="3" aria-describedby="pf-age-error">
+                    <span class="field__error" id="pf-age-error"></span>
+                  </div>
+                  <div class="field">
+                    <label for="pf-sex">Sexo</label>
+                    <select id="pf-sex" name="sex" aria-describedby="pf-sex-error">
+                      <option value="">Selecciona</option>
+                      <option value="m">Masculino</option>
+                      <option value="f">Femenino</option>
+                      <option value="x">Prefiero no decir</option>
+                    </select>
+                    <span class="field__error" id="pf-sex-error"></span>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="field">
+                    <label for="pf-height">Altura (cm)</label>
+                    <input id="pf-height" name="height" inputmode="decimal" maxlength="6" aria-describedby="pf-height-error">
+                    <span class="field__error" id="pf-height-error"></span>
+                  </div>
+                  <div class="field">
+                    <label for="pf-weight">Peso actual (kg)</label>
+                    <input id="pf-weight" name="weight" inputmode="decimal" maxlength="6" aria-describedby="pf-weight-error">
+                    <span class="field__error" id="pf-weight-error"></span>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn--primary">Guardar cambios</button>
+                  <button type="button" class="btn btn--ghost" data-reset-form="profile-form">Descartar</button>
+                </div>
+              </form>
+
+              <!-- Objetivos -->
+              <form class="card form" id="goals-form" data-ppanel="objetivos" novalidate hidden>
+                <h2 class="h-sm">Tus objetivos</h2>
+                <div class="form-alert" role="alert" hidden></div>
+                <fieldset class="field">
+                  <legend>Objetivo principal</legend>
+                  <div class="segmented">
+                    <label><input type="radio" name="goal" value="perder"><span>Perder peso</span></label>
+                    <label><input type="radio" name="goal" value="mantener"><span>Mantener</span></label>
+                    <label><input type="radio" name="goal" value="ganar"><span>Ganar masa</span></label>
+                  </div>
+                </fieldset>
+                <div class="form-row">
+                  <div class="field">
+                    <label for="gl-target">Peso objetivo (kg)</label>
+                    <input id="gl-target" name="target" inputmode="decimal" maxlength="6" aria-describedby="gl-target-error">
+                    <span class="field__error" id="gl-target-error"></span>
+                  </div>
+                  <div class="field">
+                    <label for="gl-minutes">Meta de actividad diaria (min)</label>
+                    <input id="gl-minutes" name="minutesGoal" inputmode="numeric" maxlength="3" aria-describedby="gl-minutes-error">
+                    <span class="field__error" id="gl-minutes-error"></span>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="gl-level">Nivel de actividad</label>
+                  <select id="gl-level" name="level">
+                    <option value="sedentario">Sedentario — poco o nada de ejercicio</option>
+                    <option value="ligero">Ligero — 1 a 3 días por semana</option>
+                    <option value="moderado">Moderado — 3 a 5 días por semana</option>
+                    <option value="intenso">Intenso — 6 a 7 días por semana</option>
+                  </select>
+                </div>
+                <p class="warning" id="gl-warning" hidden></p>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn--primary">Guardar objetivos</button>
+                  <button type="button" class="btn btn--ghost" data-reset-form="goals-form">Descartar</button>
+                </div>
+              </form>
+
+              <!-- Notificaciones -->
+              <form class="card form" id="notif-form" data-ppanel="notificaciones" novalidate hidden>
+                <h2 class="h-sm">Notificaciones</h2>
+                <p class="muted">Elige qué recordatorios quieres recibir. Se activarán junto con las alertas de la próxima versión.</p>
+                <label class="switch"><input type="checkbox" name="weighIn"><span class="switch__track"></span><span>Recordatorio semanal de pesaje</span></label>
+                <label class="switch"><input type="checkbox" name="activity"><span class="switch__track"></span><span>Recordatorio diario de actividad</span></label>
+                <label class="switch"><input type="checkbox" name="tips"><span class="switch__track"></span><span>Consejos de nutrición y hábitos</span></label>
+                <label class="switch"><input type="checkbox" name="security"><span class="switch__track"></span><span>Alertas de seguridad de la cuenta</span></label>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn--primary">Guardar preferencias</button>
+                </div>
+              </form>
+
+              <!-- Seguridad -->
+              <div data-ppanel="seguridad" hidden>
+                <form class="card form" id="password-form" novalidate>
+                  <h2 class="h-sm">Cambiar contraseña</h2>
+                  <div class="form-alert" role="alert" hidden></div>
+                  <div class="field">
+                    <label for="pw-current">Contraseña actual</label>
+                    <input id="pw-current" name="current" type="password" autocomplete="current-password" maxlength="64" aria-describedby="pw-current-error">
+                    <span class="field__error" id="pw-current-error"></span>
+                  </div>
+                  <div class="form-row">
+                    <div class="field">
+                      <label for="pw-new">Nueva contraseña</label>
+                      <input id="pw-new" name="password" type="password" autocomplete="new-password" maxlength="64" aria-describedby="pw-new-error">
+                      <span class="field__error" id="pw-new-error"></span>
+                    </div>
+                    <div class="field">
+                      <label for="pw-confirm">Confirmar nueva contraseña</label>
+                      <input id="pw-confirm" name="confirm" type="password" autocomplete="new-password" maxlength="64" aria-describedby="pw-confirm-error">
+                      <span class="field__error" id="pw-confirm-error"></span>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn--primary">Actualizar contraseña</button>
+                </form>
+
+                <article class="card">
+                  <h2 class="h-sm">Sesión</h2>
+                  <dl class="facts facts--rows">
+                    <div><dt>Último acceso</dt><dd id="sec-last"></dd></div>
+                    <div><dt>Cuenta creada</dt><dd id="sec-created"></dd></div>
+                    <div><dt>Cierre automático</dt><dd>Tras 30 minutos sin actividad</dd></div>
+                  </dl>
+                  <button type="button" class="btn btn--ghost" data-action="logout"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Cerrar sesión</button>
+                </article>
+
+                <article class="card card--danger">
+                  <h2 class="h-sm">Zona de riesgo</h2>
+                  <p class="muted">Eliminar tu cuenta borra tu perfil, tu historial de peso y tus actividades de este dispositivo. No se puede deshacer.</p>
+                  <button type="button" class="btn btn--danger" id="delete-account"><i class="fa-solid fa-trash" aria-hidden="true"></i> Eliminar cuenta</button>
+                </article>
+              </div>
+            </div>
+
+            <aside class="card card--accent plan-card">
+              <span class="tile__label">Tu resumen</span>
+              <ul class="checklist checklist--light" id="profile-summary"></ul>
+              <p class="quote quote--sm">“Una mejor versión de ti, cada día.”</p>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Diálogo de confirmación reutilizable -->
+  <dialog class="dialog" id="confirm-dialog" aria-labelledby="confirm-title">
+    <form method="dialog" class="dialog__inner">
+      <h2 class="h-sm" id="confirm-title"></h2>
+      <p class="muted" id="confirm-body"></p>
+      <div class="field" id="confirm-input-wrap" hidden>
+        <label for="confirm-input" id="confirm-input-label"></label>
+        <input id="confirm-input" autocomplete="off">
+      </div>
+      <div class="form-actions">
+        <button value="cancel" class="btn btn--ghost">Cancelar</button>
+        <button value="ok" class="btn btn--primary" id="confirm-ok">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+  <button class="to-top" id="to-top" aria-label="Volver arriba" hidden><i class="fa-solid fa-chevron-up" aria-hidden="true"></i></button>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
