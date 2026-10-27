@@ -11,9 +11,28 @@
   <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#1f3d2c">
   <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+  <!-- Logo OL: se dibuja una vez y se reutiliza con <use href="#ol-logo"> -->
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="ol-bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#2CB67D"/>
+        <stop offset="1" stop-color="#1F3D2C"/>
+      </linearGradient>
+    </defs>
+    <symbol id="ol-logo" viewBox="0 0 48 48">
+      <rect width="48" height="48" rx="14" fill="url(#ol-bg)"/>
+      <circle cx="17.5" cy="27" r="8.2" fill="none" stroke="#F9FFFB" stroke-width="4.4"/>
+      <path d="M30.5 17.5V35.2h8.3" fill="none" stroke="#F9FFFB" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M20.6 16.4c-.4-5.3 3-9.2 8.6-9.6.4 5.3-3 9.2-8.6 9.6z" fill="#9BE7B1"/>
+      <path d="M21.2 16c1.8-2.4 3.9-4.4 6.4-6" fill="none" stroke="#1F3D2C" stroke-width="1" stroke-linecap="round" opacity=".45"/>
+    </symbol>
+  </svg>
+
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
 
   <div class="banner" id="storage-warning" role="alert" hidden>
@@ -25,7 +44,7 @@
     La app no está conectada a la base de datos: configura tu proyecto de Supabase en js/config.js.
   </div>
   <div class="boot" id="boot" aria-live="polite">
-    <span class="wordmark__mark" aria-hidden="true"></span>
+    <svg class="logo logo--boot" aria-hidden="true"><use href="#ol-logo"/></svg>
     <span class="sr-only">Cargando One Life…</span>
   </div>
 
@@ -34,12 +53,13 @@
        ============================================================ -->
   <div id="public" class="public">
     <header class="topnav" id="topnav">
-      <a href="#/inicio" class="wordmark" data-scroll="top" aria-label="One Life, inicio"><span class="wordmark__mark" aria-hidden="true"></span>one life</a>
+      <a href="#/inicio" class="wordmark" data-scroll="top" aria-label="One Life, inicio"><svg class="logo" aria-hidden="true"><use href="#ol-logo"/></svg>one life</a>
       <nav class="topnav__group topnav__group--center" aria-label="Secciones">
         <a href="#/inicio" class="navlink is-active" data-scroll="top">Inicio</a>
         <a href="#/inicio" class="navlink" data-scroll="imc">El IMC</a>
         <a href="#/inicio" class="navlink" data-scroll="funciones">Funciones</a>
         <a href="#/inicio" class="navlink" data-scroll="faq">FAQ</a>
+        <a href="#/inicio" class="navlink" data-scroll="contacto">Contacto</a>
       </nav>
       <div class="topnav__group topnav__group--end">
         <a href="#/acceso" class="navlink">Iniciar sesión</a>
@@ -52,6 +72,7 @@
         <a href="#/inicio" class="navlink" data-scroll="imc">El IMC</a>
         <a href="#/inicio" class="navlink" data-scroll="funciones">Funciones</a>
         <a href="#/inicio" class="navlink" data-scroll="faq">FAQ</a>
+        <a href="#/inicio" class="navlink" data-scroll="contacto">Contacto</a>
         <a href="#/acceso" class="navlink">Iniciar sesión</a>
         <a href="#/acceso?modo=registro" class="btn btn--primary">Comenzar</a>
       </div>
@@ -69,15 +90,15 @@
             <a href="#/acceso?modo=registro" class="btn btn--primary btn--lg">Crear cuenta gratis <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
             <a href="#/acceso" class="btn btn--ghost btn--lg">Ya tengo cuenta</a>
           </div>
-          <p class="hero__note" data-reveal style="--d:.8s">Gratis · 30 s para tu primer cálculo · Datos en tu dispositivo</p>
+          <p class="hero__note" data-reveal style="--d:.8s">Gratis · 30 s para tu primer cálculo · Datos protegidos</p>
         </div>
         <div class="hero__media" data-reveal="zoom" style="--d:.35s">
           <div class="hero__visual" aria-hidden="true">
             <svg viewBox="0 0 320 320" class="hero__ring">
               <defs>
                 <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stop-color="#ff8a6b"/>
-                  <stop offset="1" stop-color="#e5483b"/>
+                  <stop offset="0" stop-color="#9BE7B1"/>
+                  <stop offset="1" stop-color="#2CB67D"/>
                 </linearGradient>
               </defs>
               <circle cx="160" cy="160" r="140" class="ring-track" pathLength="100"/>
@@ -99,7 +120,7 @@
           <div><dt data-count="6">6</dt><dd>Categorías OMS</dd></div>
           <div><dt data-count="6">6</dt><dd>Módulos personales</dd></div>
           <div><dt data-count="30" data-suffix=" s">30 s</dt><dd>Para tu primer cálculo</dd></div>
-          <div><dt data-count="100" data-suffix="%">100%</dt><dd>Datos en tu dispositivo</dd></div>
+          <div><dt data-count="100" data-suffix="%">100%</dt><dd>Tus datos, solo tuyos</dd></div>
         </dl>
       </section>
 
@@ -187,7 +208,7 @@
             <h2 class="h-lg">Tres pasos, una rutina</h2>
           </div>
           <ol class="steps">
-            <li><span class="steps__num">01</span><h3>Crea tu cuenta</h3><p>Solo nombre, correo y una contraseña segura. Tus datos se guardan en tu dispositivo.</p></li>
+            <li><span class="steps__num">01</span><h3>Crea tu cuenta</h3><p>Solo nombre, correo y una contraseña segura. Tus datos quedan protegidos y solo tú los ves.</p></li>
             <li><span class="steps__num">02</span><h3>Calcula tu IMC</h3><p>Ingresa peso, altura y edad. Obtén tu clasificación y tu rango saludable.</p></li>
             <li><span class="steps__num">03</span><h3>Sigue tu progreso</h3><p>Registra peso y actividad. One Life ajusta tu plan y te muestra la evolución.</p></li>
           </ol>
@@ -225,6 +246,41 @@
         </div>
       </section>
 
+      <section class="section section--cream" id="contacto">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow eyebrow--ink">Contacto</p>
+            <h2 class="h-lg">Queremos escucharte</h2>
+            <p class="body-lg muted">¿Tienes una idea para mejorar One Life, una duda o encontraste un problema? Escríbenos: leemos cada mensaje.</p>
+          </div>
+          <div class="contact">
+            <div class="contact__channels">
+              <a class="contact-card" href="#/inicio" data-scroll="feedback-pub">
+                <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                <span><strong>Sugerencias y comentarios</strong><small>Usa el formulario. Respondemos en 48 h hábiles.</small></span>
+              </a>
+              <a class="contact-card" href="#/inicio" data-scroll="faq">
+                <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+                <span><strong>Preguntas frecuentes</strong><small>Las dudas más comunes, resueltas al momento.</small></span>
+              </a>
+              <a class="contact-card" href="#/acceso">
+                <i class="fa-solid fa-key" aria-hidden="true"></i>
+                <span><strong>Soporte de cuenta</strong><small>¿Olvidaste tu contraseña? Recupérala desde Iniciar sesión.</small></span>
+              </a>
+              <a class="contact-card" href="#/privacidad">
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                <span><strong>Privacidad y datos</strong><small>Cómo protegemos tu información y cómo borrarla.</small></span>
+              </a>
+              <a class="contact-card" id="contact-email" hidden>
+                <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                <span><strong>Correo</strong><small data-bind-contact-email></small></span>
+              </a>
+            </div>
+            <div class="card contact__form" id="feedback-pub" data-feedback="pub"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="cta-band">
         <div class="container cta-band__inner">
           <h2 class="display display--md">Una vida.<br>Hazla contar.</h2>
@@ -234,8 +290,13 @@
 
       <footer class="footer">
         <div class="container footer__inner">
-          <span class="wordmark wordmark--sm"><span class="wordmark__mark" aria-hidden="true"></span>one life</span>
+          <span class="wordmark wordmark--sm"><svg class="logo" aria-hidden="true"><use href="#ol-logo"/></svg>one life</span>
           <p class="footer__tagline">Salud · Equilibrio · Disciplina · Resultados</p>
+          <nav class="footer__links" aria-label="Legal y contacto">
+            <a href="#/terminos">Términos y condiciones</a>
+            <a href="#/privacidad">Política de privacidad y seguridad</a>
+            <a href="#/inicio" data-scroll="contacto">Contacto</a>
+          </nav>
           <p class="caption muted">One Life es una herramienta informativa y no sustituye el consejo médico profesional.</p>
         </div>
       </footer>
@@ -302,6 +363,8 @@
                 <li data-rule="upper">Una mayúscula</li>
                 <li data-rule="lower">Una minúscula</li>
                 <li data-rule="number">Un número</li>
+                <li data-rule="sequence">Sin números consecutivos (123, 987)</li>
+                <li data-rule="repeat">Sin números repetidos (111)</li>
               </ul>
               <span class="caps-hint" data-caps-for="reg-password" hidden><i class="fa-solid fa-arrow-up" aria-hidden="true"></i> Bloq Mayús está activado</span>
               <span class="field__error" id="reg-password-error"></span>
@@ -311,19 +374,178 @@
               <input id="reg-confirm" name="confirm" type="password" autocomplete="new-password" maxlength="64" placeholder="Repite la contraseña" aria-describedby="reg-confirm-error">
               <span class="field__error" id="reg-confirm-error"></span>
             </div>
-            <div class="field">
-              <label class="check"><input type="checkbox" id="reg-terms" name="terms" aria-describedby="reg-terms-error"> <span>Entiendo que One Life es informativo y no sustituye el consejo médico.</span></label>
-              <span class="field__error" id="reg-terms-error"></span>
+            <div class="consent">
+              <div class="field">
+                <label class="check"><input type="checkbox" id="reg-terms" name="terms" aria-describedby="reg-terms-error"> <span>He leído y acepto los <button type="button" class="link" data-legal="terminos">Términos y condiciones</button>.</span></label>
+                <span class="field__error" id="reg-terms-error"></span>
+              </div>
+              <div class="field">
+                <label class="check"><input type="checkbox" id="reg-privacy" name="privacy" aria-describedby="reg-privacy-error"> <span>He leído y acepto la <button type="button" class="link" data-legal="privacidad">Política de privacidad y seguridad</button>.</span></label>
+                <span class="field__error" id="reg-privacy-error"></span>
+              </div>
+              <p class="caption muted">Debes aceptar los dos para crear tu cuenta. One Life es informativo y no sustituye el consejo médico.</p>
             </div>
             <button type="submit" class="btn btn--primary btn--block">Crear cuenta</button>
             <p class="caption muted center">¿Ya tienes cuenta? <button type="button" class="link" data-auth-tab="login">Inicia sesión</button></p>
           </form>
         </div>
       </div>
-      <aside class="auth__art" aria-hidden="true">
-        <p class="display display--md">Disciplina hoy,<br>resultados mañana.</p>
-        <p class="auth__art-foot">Cuerpo sano.<br>Mente fuerte.<br>Vida plena.</p>
+      <!-- Panel visual: solo decorativo. No interviene en el formulario ni en la autenticación. -->
+      <aside class="auth__art" id="auth-art">
+        <!-- Fondo: Unicorn Studio si hay unicornProjectId en js/config.js; si no, auroras CSS -->
+        <div class="auth-bg" id="auth-unicorn" aria-hidden="true">
+          <span class="auth-bg__blob auth-bg__blob--a"></span>
+          <span class="auth-bg__blob auth-bg__blob--b"></span>
+          <span class="auth-bg__blob auth-bg__blob--c"></span>
+        </div>
+
+        <div class="auth__art-copy" aria-hidden="true">
+          <p class="eyebrow eyebrow--ink">Alimentación · Movimiento · Bienestar</p>
+          <p class="display display--md">Disciplina hoy,<br>resultados mañana.</p>
+        </div>
+
+        <!-- Escena 3D: cada capa se mueve según su profundidad (--z) al mover el ratón -->
+        <div class="scene" id="health-scene" aria-hidden="true">
+          <div class="scene__stage">
+            <span class="scene__ring scene__ring--outer"></span>
+            <span class="scene__ring scene__ring--inner"></span>
+            <span class="scene__platform"></span>
+
+            <span class="layer layer--hero" style="--z:70px"><img class="float" src="https://img.icons8.com/3d-fluency/375/salad.png" alt="" width="375" height="375" decoding="async" fetchpriority="high"></span>
+
+            <span class="layer orbit orbit--avocado" style="--z:120px"><img class="float float--1" src="https://img.icons8.com/3d-fluency/188/avocado.png" alt="" width="188" height="188" decoding="async"></span>
+            <span class="layer orbit orbit--apple" style="--z:40px"><img class="float float--2" src="https://img.icons8.com/3d-fluency/188/apple.png" alt="" width="188" height="188" decoding="async"></span>
+            <span class="layer orbit orbit--dumbbell" style="--z:140px"><img class="float float--3" src="https://img.icons8.com/3d-fluency/188/dumbbell.png" alt="" width="188" height="188" decoding="async"></span>
+            <span class="layer orbit orbit--water" style="--z:90px"><img class="float float--2" src="https://img.icons8.com/3d-fluency/188/water.png" alt="" width="188" height="188" decoding="async"></span>
+            <span class="layer orbit orbit--broccoli" style="--z:30px"><img class="float float--3" src="https://img.icons8.com/3d-fluency/188/broccoli.png" alt="" width="188" height="188" decoding="async"></span>
+            <span class="layer orbit orbit--strawberry" style="--z:110px"><img class="float float--1" src="https://img.icons8.com/3d-fluency/188/strawberry.png" alt="" width="188" height="188" decoding="async"></span>
+            <span class="layer orbit orbit--sprout" style="--z:20px"><img class="float float--2" src="https://img.icons8.com/3d-fluency/188/sprout.png" alt="" width="188" height="188" decoding="async"></span>
+
+            <!-- Tarjetas de cristal con datos de ejemplo -->
+            <div class="layer glass glass--pulse" style="--z:160px">
+              <span class="glass__lottie" id="auth-lottie">
+                <img src="https://img.icons8.com/3d-fluency/94/heart-with-pulse.png" alt="" width="94" height="94" decoding="async">
+              </span>
+              <span><small>Ritmo cardiaco</small><strong>72 <em>lpm</em></strong></span>
+            </div>
+            <div class="layer glass glass--bmi" style="--z:130px">
+              <svg viewBox="0 0 36 36" class="glass__ring"><circle cx="18" cy="18" r="15" pathLength="100" class="glass__ring-track"/><circle cx="18" cy="18" r="15" pathLength="100" class="glass__ring-value" transform="rotate(-90 18 18)"/></svg>
+              <span><small>IMC</small><strong>22.4</strong><em class="glass__ok">Peso normal</em></span>
+            </div>
+            <div class="layer glass glass--plan" style="--z:100px">
+              <span><small>Plan de hoy</small><strong>1 590 <em>kcal</em></strong></span>
+              <span class="glass__bars"><i style="--h:.55"></i><i style="--h:.8"></i><i style="--h:.4"></i><i style="--h:.95"></i><i style="--h:.65"></i></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth__art-foot">
+          <p aria-hidden="true">Cuerpo sano · Mente fuerte · Vida plena</p>
+          <a class="auth__credit" href="https://icons8.com" target="_blank" rel="noopener noreferrer">Iconos 3D de Icons8</a>
+        </div>
       </aside>
+
+    </main>
+
+    <!-- ---------- TÉRMINOS Y CONDICIONES ---------- -->
+    <main class="view-public legal-page" data-public-view="terminos" hidden>
+      <div class="container container--narrow">
+        <button type="button" class="btn btn--link" data-legal-back><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</button>
+        <article class="legal" id="legal-terminos">
+          <p class="eyebrow">Legal · Versión 1.0 · 26 de octubre de 2026</p>
+          <h1 class="h-lg">Términos y condiciones</h1>
+          <p class="legal__intro">Estos términos regulan el uso de One Life. Al crear una cuenta confirmas que los leíste y que los aceptas. Si no estás de acuerdo, no uses el servicio.</p>
+
+          <h2>1. Qué es One Life</h2>
+          <p>One Life es una herramienta informativa que calcula tu índice de masa corporal (IMC), estima tus calorías y te ayuda a registrar tu peso y tu actividad física. <strong>No es un servicio médico</strong>, no hace diagnósticos y no sustituye la consulta con un profesional de la salud.</p>
+
+          <h2>2. Tu cuenta</h2>
+          <ul>
+            <li>Debes tener al menos 18 años, o contar con la autorización de tu madre, padre o tutor.</li>
+            <li>Los datos que registres deben ser verdaderos y tuyos.</li>
+            <li>Eres responsable de mantener tu contraseña en secreto. Usa una contraseña única, de al menos 8 caracteres, sin números consecutivos (123) ni repetidos (111).</li>
+            <li>Avísanos de inmediato si crees que alguien entró a tu cuenta.</li>
+          </ul>
+
+          <h2>3. Uso aceptable</h2>
+          <p>Te comprometes a no:</p>
+          <ul>
+            <li>Intentar acceder a cuentas o datos de otras personas.</li>
+            <li>Probar, saturar o atacar la seguridad del servicio, ni usar programas automatizados para enviar formularios.</li>
+            <li>Enviar mensajes ofensivos, engañosos o con publicidad mediante el formulario de contacto.</li>
+            <li>Copiar o revender el contenido de One Life sin permiso.</li>
+          </ul>
+
+          <h2>4. Información de salud</h2>
+          <p>Las métricas, planes de alimentación, recetas y ejercicios son orientativos y se basan en fórmulas generales (OMS, Mifflin-St Jeor). Pueden no ser adecuados en embarazo, lactancia, enfermedades crónicas, trastornos de la conducta alimentaria, ni para menores de edad. Consulta a un profesional antes de cambiar tu alimentación o tu actividad física.</p>
+
+          <h2>5. Disponibilidad y cambios</h2>
+          <p>Trabajamos para que One Life funcione siempre, pero puede haber interrupciones por mantenimiento o causas ajenas. Podemos mejorar, cambiar o retirar funciones. Si cambiamos estos términos, te lo avisaremos y te pediremos aceptarlos de nuevo cuando el cambio sea importante.</p>
+
+          <h2>6. Responsabilidad</h2>
+          <p>One Life se ofrece «tal cual». En la medida en que la ley lo permita, no somos responsables de decisiones de salud tomadas solo con base en la información de la app.</p>
+
+          <h2>7. Suspensión y eliminación</h2>
+          <p>Puedes eliminar tu cuenta cuando quieras desde <em>Perfil y ajustes → Seguridad</em>; se borran tu perfil, tu historial de peso y tus actividades. Podemos suspender cuentas que incumplan estos términos.</p>
+
+          <h2>8. Contacto</h2>
+          <p>Para dudas sobre estos términos, usa el formulario de <a href="#/inicio" class="link" data-scroll="contacto">Contacto</a>.</p>
+        </article>
+      </div>
+    </main>
+
+    <!-- ---------- POLÍTICA DE PRIVACIDAD Y SEGURIDAD ---------- -->
+    <main class="view-public legal-page" data-public-view="privacidad" hidden>
+      <div class="container container--narrow">
+        <button type="button" class="btn btn--link" data-legal-back><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</button>
+        <article class="legal" id="legal-privacidad">
+          <p class="eyebrow">Legal · Versión 1.0 · 26 de octubre de 2026</p>
+          <h1 class="h-lg">Política de privacidad y seguridad</h1>
+          <p class="legal__intro">Tu peso y tu IMC son datos de salud. Esta política explica qué guardamos, para qué y cómo lo protegemos.</p>
+
+          <h2>1. Datos que guardamos</h2>
+          <ul>
+            <li><strong>Cuenta:</strong> nombre, correo y contraseña (la contraseña se guarda cifrada con un hash: nadie, ni el administrador, puede verla).</li>
+            <li><strong>Perfil:</strong> edad, sexo, altura, peso, objetivos y preferencias de notificación.</li>
+            <li><strong>Registros:</strong> historial de peso, actividad física y fecha de cada inicio de sesión.</li>
+            <li><strong>Contacto:</strong> el nombre, correo y mensaje que envíes en el formulario de sugerencias.</li>
+            <li><strong>Aceptación legal:</strong> la fecha en que aceptaste estos documentos y su versión.</li>
+          </ul>
+
+          <h2>2. Para qué los usamos</h2>
+          <ul>
+            <li>Calcular tu IMC, tus calorías y mostrarte tu progreso.</li>
+            <li>Mantener tu cuenta segura y detectar accesos extraños.</li>
+            <li>Responder tus mensajes y mejorar One Life.</li>
+            <li>Elaborar estadísticas <strong>agregadas y anónimas</strong> (por ejemplo, el IMC promedio de todos los usuarios).</li>
+          </ul>
+          <p>No vendemos tus datos ni los usamos para publicidad.</p>
+
+          <h2>3. Dónde se guardan</h2>
+          <p>En una base de datos de Supabase (PostgreSQL). La conexión siempre va cifrada (HTTPS) y cada tabla tiene seguridad por fila: cada persona solo puede leer y modificar sus propios datos.</p>
+
+          <h2>4. Medidas de seguridad</h2>
+          <ul>
+            <li>Contraseñas de 8 caracteres o más, con mayúsculas, minúsculas y números, sin números consecutivos ni repetidos.</li>
+            <li>Bloqueo temporal tras varios intentos de inicio de sesión fallidos.</li>
+            <li>Cierre automático de la sesión tras 30 minutos sin actividad.</li>
+            <li>El administrador solo ve métricas y datos básicos de cuenta, y no puede leer contraseñas.</li>
+            <li>Límite de mensajes en el formulario de contacto para frenar el spam.</li>
+          </ul>
+
+          <h2>5. Cuánto tiempo los guardamos</h2>
+          <p>Mientras tengas tu cuenta. Si la eliminas, se borran tu perfil, tus registros de peso, tus actividades y tus accesos. Los mensajes de contacto se conservan sin vínculo a tu cuenta hasta que el administrador los borra.</p>
+
+          <h2>6. Tus derechos</h2>
+          <p>Puedes consultar y corregir tus datos en <em>Perfil y ajustes</em>, eliminar tu cuenta en cualquier momento y escribirnos para cualquier solicitud sobre tu información.</p>
+
+          <h2>7. Almacenamiento en tu navegador</h2>
+          <p>Usamos el almacenamiento local del navegador para mantener tu sesión y recordar los intentos de inicio de sesión. No usamos cookies de publicidad ni de seguimiento.</p>
+
+          <h2>8. Cambios y contacto</h2>
+          <p>Si cambiamos esta política te lo avisaremos en la app. Para cualquier duda, usa el formulario de <a href="#/inicio" class="link" data-scroll="contacto">Contacto</a>.</p>
+        </article>
+      </div>
     </main>
   </div>
 
@@ -333,7 +555,7 @@
   <div id="app" class="app" hidden>
     <aside class="sidebar" id="sidebar">
       <div class="sidebar__head">
-        <a href="#/app/resumen" class="wordmark wordmark--sm"><span class="wordmark__mark" aria-hidden="true"></span>one life</a>
+        <a href="#/app/resumen" class="wordmark wordmark--sm"><svg class="logo" aria-hidden="true"><use href="#ol-logo"/></svg>one life</a>
         <button class="icon-btn sidebar__close" id="sidebar-close" aria-label="Cerrar menú"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       </div>
       <nav class="sidenav" aria-label="Aplicación">
@@ -344,6 +566,7 @@
         <a href="#/app/progreso" data-nav="progreso"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Progreso</a>
         <a href="#/app/informacion" data-nav="informacion"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Información</a>
         <a href="#/app/perfil" data-nav="perfil"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Perfil y ajustes</a>
+        <a href="#/app/sugerencias" data-nav="sugerencias"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i> Sugerencias</a>
         <a href="#/app/admin" data-nav="admin" id="nav-admin" class="sidenav__admin" hidden><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Administración</a>
       </nav>
       <div class="sidebar__user">
@@ -859,6 +1082,23 @@
           </div>
         </section>
 
+        <!-- ---------- SUGERENCIAS ---------- -->
+        <section class="view" data-view="sugerencias" hidden>
+          <p class="lead">Cuéntanos qué mejorarías, qué te gusta o qué falló. Tu mensaje llega directo al equipo de One Life.</p>
+          <div class="grid-feedback">
+            <div class="card" data-feedback="app"></div>
+            <aside class="card card--accent">
+              <h2 class="h-sm">Antes de escribir</h2>
+              <ul class="checklist checklist--light">
+                <li><i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span>Una idea por mensaje nos ayuda a responder mejor.</span></li>
+                <li><i class="fa-solid fa-bug" aria-hidden="true"></i><span>Si algo falló, dinos qué hacías y qué esperabas.</span></li>
+                <li><i class="fa-solid fa-lock" aria-hidden="true"></i><span>Nunca compartas tu contraseña: nadie de One Life te la pedirá.</span></li>
+              </ul>
+              <p class="caption">Lee nuestra <a href="#/privacidad" class="link">Política de privacidad</a>.</p>
+            </aside>
+          </div>
+        </section>
+
         <!-- ---------- ADMINISTRACIÓN (solo administradores) ---------- -->
         <section class="view" data-view="admin" hidden>
           <div class="toolbar toolbar--center">
@@ -917,6 +1157,22 @@
             </div>
           </article>
 
+          <article class="card">
+            <div class="card__head card__head--wrap">
+              <div>
+                <h2 class="h-sm">Sugerencias y comentarios</h2>
+                <p class="caption muted" id="admin-fb-count"></p>
+              </div>
+              <div class="tabs tabs--pills tabs--compact" role="tablist" aria-label="Filtrar sugerencias" id="admin-fb-filter">
+                <button class="tab is-active" role="tab" aria-selected="true" data-status="todas">Todas</button>
+                <button class="tab" role="tab" aria-selected="false" data-status="nuevo">Nuevas</button>
+                <button class="tab" role="tab" aria-selected="false" data-status="leido">Leídas</button>
+                <button class="tab" role="tab" aria-selected="false" data-status="resuelto">Resueltas</button>
+              </div>
+            </div>
+            <ul class="fb-list" id="admin-feedback"></ul>
+          </article>
+
           <p class="notice notice--plain">
             <i class="fa-solid fa-user-lock" aria-hidden="true"></i>
             <span>El peso y el IMC son datos de salud. Úsalos de forma agregada y solo con el consentimiento de cada persona.</span>
@@ -925,7 +1181,7 @@
       </main>
     </div>
   </div>
-  
+
   <!-- Diálogo de confirmación reutilizable -->
   <dialog class="dialog" id="confirm-dialog" aria-labelledby="confirm-title">
     <form method="dialog" class="dialog__inner">
@@ -942,7 +1198,27 @@
     </form>
   </dialog>
 
+  <!-- Receta detallada -->
+  <dialog class="dialog dialog--recipe" id="recipe-dialog" aria-labelledby="recipe-title">
+    <div class="recipe" id="recipe-body"></div>
+  </dialog>
+
+  <!-- Términos / Política dentro del registro (no se pierde lo escrito) -->
+  <dialog class="dialog dialog--legal" id="legal-dialog" aria-labelledby="legal-dialog-title">
+    <div class="legal-dialog__head">
+      <h2 class="h-sm" id="legal-dialog-title"></h2>
+      <button type="button" class="icon-btn" data-close-dialog aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="legal-dialog__body legal" id="legal-dialog-body" tabindex="0"></div>
+    <div class="legal-dialog__foot">
+      <span class="caption muted" id="legal-dialog-hint">Desplázate hasta el final para aceptar.</span>
+      <button type="button" class="btn btn--ghost" data-close-dialog>Cerrar</button>
+      <button type="button" class="btn btn--primary" id="legal-accept" disabled>He leído y acepto</button>
+    </div>
+  </dialog>
+
   <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
   <button class="to-top" id="to-top" aria-label="Volver arriba" hidden><i class="fa-solid fa-chevron-up" aria-hidden="true"></i></button>
 
   <!-- Supabase: cliente oficial, tus datos de conexión y la capa de datos de One Life -->

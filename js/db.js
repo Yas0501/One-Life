@@ -1,7 +1,7 @@
 /* ==========================================================================
    One Life — capa de datos con Supabase
    Expone window.db con todo lo que la app necesita: cuentas, perfil,
-   pesos, actividades y métricas del administrador.
+   pesos, actividades, sugerencias y métricas del administrador.
 
    Todas las funciones son async y lanzan un Error con un mensaje en
    español si algo falla, así que se usan con try/catch:
@@ -47,6 +47,9 @@
     [/jwt expired|refresh token|session.*missing|not authenticated/i, 'Tu sesión expiró. Vuelve a iniciar sesión.'],
     [/acceso denegado|permission denied|42501/i, 'No tienes permiso para hacer esto.'],
     [/duplicate key.*weight_records/i, 'Ya tienes un registro de peso ese día.'],
+    // Mensajes que lanzan los triggers de supabase/schema.sql
+    [/database error saving new user|terminos_no_aceptados/i, 'Para crear tu cuenta debes aceptar los Términos y condiciones y la Política de privacidad.'],
+    [/demasiados_mensajes/i, 'Enviaste varios mensajes seguidos. Espera unos minutos antes de mandar otro.'],
     [/violates check constraint/i, 'Alguno de los datos está fuera del rango permitido.'],
     [/failed to fetch|network/i, 'No hay conexión con el servidor. Revisa tu internet.'],
   ];
@@ -112,12 +115,22 @@
     client, // acceso directo por si necesitas algo que no esté aquí
 
     /* ---------- Cuentas ---------- */
-    async signUp(name, email, password) {
+    /**
+     * consent = { terms: true, privacy: true, version: '1.0' }
+     * El trigger handle_new_user rechaza el registro si falta alguno de los dos.
+     */
+    async signUp(name, email, password, consent = {}) {
       const data = await run(client.auth.signUp({
         email,
         password,
         options: {
-          data: { name }, // lo usa el trigger handle_new_user para crear el perfil
+          // Lo usa el trigger handle_new_user para crear el perfil y guardar la aceptación
+          data: {
+            name,
+            accepted_terms: consent.terms === true,
+            accepted_privacy: consent.privacy === true,
+            legal_version: consent.version || '',
+          },
           emailRedirectTo: `${location.origin}${location.pathname}#/acceso`,
         },
       }));
@@ -250,6 +263,22 @@
       await run(client.from('activities').delete().eq('id', id));
     },
 
+    /* ---------- Sugerencias y comentarios ---------- */
+    /**
+     * Cualquiera puede enviar (con o sin sesión), pero nadie puede leerlas
+     * salvo el administrador. Por eso no se pide la fila de vuelta (.select()).
+     * row = { name, email, kind, rating, message }
+     */
+    async sendFeedback(row) {
+      await run(client.from('feedback').insert({
+        name: row.name,
+        email: row.email,
+        kind: row.kind,
+        rating: row.rating || null,
+        message: row.message,
+      }));
+    },
+
     /* ---------- Administrador ---------- */
     async isAdmin() {
       const { data, error } = await client.rpc('is_admin');
@@ -275,6 +304,22 @@
       async setRole(userId, role) {
         await run(client.from('profiles').update({ role }).eq('id', userId));
       },
+
+      /** [{ id, name, email, kind, rating, message, status, created_at, user_id }] */
+      listFeedback: (limit = 100) => run(client
+        .from('feedback')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit)),
+
+      async setFeedbackStatus(id, status) {
+        await run(client.from('feedback').update({ status }).eq('id', id));
+      },
+
+      async deleteFeedback(id) {
+        await run(client.from('feedback').delete().eq('id', id));
+      },
+
     },
   };
 })();

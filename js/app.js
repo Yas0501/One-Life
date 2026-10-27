@@ -10,6 +10,9 @@
   /* ------------------------------------------------------------------
      Utilidades
      ------------------------------------------------------------------ */
+  // El scroll lo gestiona la app: el navegador no debe restaurar posiciones viejas al cambiar de vista
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -90,6 +93,7 @@
 
   const KEYS = {
     attempts: 'ol.attempts',      // intentos fallidos por correo
+    feedbackAt: 'ol.feedbackAt',  // último mensaje de contacto enviado (anti-spam local)
     remember: 'ol.remember',      // "Recordarme" marcado
     alive: 'ol.alive',            // sessionStorage: la pestaña sigue abierta
     lastActive: 'ol.lastActive',  // última interacción, para el cierre por inactividad
@@ -130,25 +134,107 @@
     { key: 'baile', label: 'Baile', met: 5, icon: 'fa-music' },
   ];
 
+  /* Recetas: cada una con foto (Unsplash), ingredientes y pasos para 1 porción. */
   const MEALS = [
-    { type: 'desayuno', name: 'Avena con frutos rojos y chía', kcal: 320, min: 10, tags: ['Alto en fibra'], desc: 'Avena cocida, frutos rojos, semillas de chía y canela.' },
-    { type: 'desayuno', name: 'Tostada integral con aguacate y huevo', kcal: 380, min: 10, tags: ['Proteína'], desc: 'Pan integral, medio aguacate, huevo pochado y tomate.' },
-    { type: 'desayuno', name: 'Yogur griego con nueces y miel', kcal: 290, min: 5, tags: ['Proteína'], desc: 'Yogur griego natural, nueces troceadas y un hilo de miel.' },
-    { type: 'desayuno', name: 'Batido verde de espinaca y plátano', kcal: 240, min: 5, tags: ['Ligero'], desc: 'Espinaca, plátano, leche vegetal y linaza molida.' },
-    { type: 'almuerzo', name: 'Pollo a la plancha con quinoa', kcal: 520, min: 25, tags: ['Proteína', 'Bajo en grasa'], desc: 'Pechuga a la plancha, quinoa y verduras salteadas.' },
-    { type: 'almuerzo', name: 'Ensalada mediterránea con garbanzos', kcal: 430, min: 15, tags: ['Vegano', 'Alto en fibra'], desc: 'Garbanzos, pepino, tomate, aceitunas y aceite de oliva.' },
-    { type: 'almuerzo', name: 'Salmón al horno con camote', kcal: 580, min: 30, tags: ['Omega 3'], desc: 'Salmón, camote asado y espárragos con limón.' },
-    { type: 'almuerzo', name: 'Bowl de arroz integral y frijoles', kcal: 490, min: 20, tags: ['Vegano'], desc: 'Arroz integral, frijoles negros, maíz y pico de gallo.' },
-    { type: 'cena', name: 'Crema de calabaza con semillas', kcal: 280, min: 25, tags: ['Ligero'], desc: 'Calabaza, cebolla, caldo de verduras y pepitas tostadas.' },
-    { type: 'cena', name: 'Tortilla de claras con champiñones', kcal: 260, min: 10, tags: ['Proteína', 'Ligero'], desc: 'Claras, champiñones, espinaca y queso fresco.' },
-    { type: 'cena', name: 'Pescado blanco con ensalada tibia', kcal: 340, min: 20, tags: ['Bajo en grasa'], desc: 'Filete de pescado blanco, hojas verdes y verduras asadas.' },
-    { type: 'cena', name: 'Wrap integral de pavo y vegetales', kcal: 410, min: 10, tags: ['Proteína'], desc: 'Tortilla integral, pavo, lechuga, zanahoria y hummus.' },
-    { type: 'snack', name: 'Manzana con crema de cacahuate', kcal: 190, min: 2, tags: ['Saciante'], desc: 'Una manzana en gajos con una cucharada de crema de cacahuate.' },
-    { type: 'snack', name: 'Hummus con bastones de zanahoria', kcal: 160, min: 5, tags: ['Vegano'], desc: 'Tres cucharadas de hummus con zanahoria y pepino.' },
-    { type: 'snack', name: 'Puñado de almendras', kcal: 150, min: 1, tags: ['Grasas saludables'], desc: 'Unas 25 g de almendras naturales.' },
-    { type: 'snack', name: 'Queso cottage con piña', kcal: 170, min: 3, tags: ['Proteína'], desc: 'Media taza de cottage con piña natural.' },
+    { id: 'avena-frutos-rojos', type: 'desayuno', name: 'Avena con frutos rojos y chía', kcal: 320, min: 10, tags: ['Alto en fibra'],
+      img: 'photo-1610441009633-b6ca9c6d4be2', macros: { p: 11, c: 52, f: 9 },
+      desc: 'Avena cocida, frutos rojos, semillas de chía y canela.',
+      ingredients: ['40 g de avena en hojuelas', '200 ml de leche descremada o bebida vegetal', '80 g de frutos rojos (fresas, moras, arándanos)', '1 cucharada de semillas de chía', '½ cucharadita de canela', '1 cucharadita de miel (opcional)'],
+      steps: ['Calienta la leche en una olla a fuego medio.', 'Añade la avena y la canela y cocina 4–5 minutos, removiendo, hasta que espese.', 'Sirve en un tazón y espolvorea la chía.', 'Corona con los frutos rojos y, si quieres, un hilo de miel.'],
+      tip: 'Prepárala la noche anterior en frío (overnight oats): mezcla todo y guárdala en el refrigerador.' },
+    { id: 'tostada-aguacate-huevo', type: 'desayuno', name: 'Tostada integral con aguacate y huevo', kcal: 380, min: 10, tags: ['Proteína'],
+      img: 'photo-1613769049987-b31b641f25b1', macros: { p: 16, c: 30, f: 21 },
+      desc: 'Pan integral, medio aguacate, huevo pochado y tomate.',
+      ingredients: ['2 rebanadas de pan integral', '½ aguacate maduro', '1 huevo', '4 tomates cherry', 'Jugo de ½ limón', 'Sal, pimienta y hojuelas de chile al gusto'],
+      steps: ['Tuesta el pan.', 'Machaca el aguacate con el limón, sal y pimienta.', 'Pocha el huevo 3 minutos en agua apenas hirviendo con un chorrito de vinagre.', 'Unta el aguacate en el pan, coloca el huevo encima y añade los tomates en mitades.'],
+      tip: 'Si no te gusta el huevo pochado, usa un huevo cocido en rodajas: mismas calorías.' },
+    { id: 'yogur-nueces-miel', type: 'desayuno', name: 'Yogur griego con nueces y miel', kcal: 290, min: 5, tags: ['Proteína'],
+      img: 'photo-1593999419634-455e51714dca', macros: { p: 18, c: 22, f: 14 },
+      desc: 'Yogur griego natural, nueces troceadas y un hilo de miel.',
+      ingredients: ['170 g de yogur griego natural sin azúcar', '15 g de nueces troceadas', '1 cucharadita de miel', '2 cucharadas de granola sin azúcar (opcional)', 'Fruta picada al gusto'],
+      steps: ['Sirve el yogur en un vaso o tazón.', 'Añade la fruta y la granola por capas.', 'Termina con las nueces y la miel.'],
+      tip: 'El yogur griego tiene el doble de proteína que el normal: te mantiene saciado hasta el almuerzo.' },
+    { id: 'batido-verde', type: 'desayuno', name: 'Batido verde de espinaca y plátano', kcal: 240, min: 5, tags: ['Ligero'],
+      img: 'photo-1610970881699-44a5587cabec', macros: { p: 8, c: 40, f: 6 },
+      desc: 'Espinaca, plátano, leche vegetal y linaza molida.',
+      ingredients: ['1 taza de espinaca fresca', '1 plátano congelado en rodajas', '250 ml de bebida de almendra sin azúcar', '1 cucharada de linaza molida', '½ taza de hielo'],
+      steps: ['Coloca la espinaca y la bebida vegetal en la licuadora y licúa 20 segundos.', 'Añade el plátano, la linaza y el hielo.', 'Licúa hasta que quede cremoso y sirve de inmediato.'],
+      tip: 'Congelar el plátano da textura de helado sin añadir azúcar.' },
+    { id: 'pollo-quinoa', type: 'almuerzo', name: 'Pollo a la plancha con quinoa', kcal: 520, min: 25, tags: ['Proteína', 'Bajo en grasa'],
+      img: 'photo-1666724405260-48b7a2024809', macros: { p: 45, c: 48, f: 14 },
+      desc: 'Pechuga a la plancha, quinoa y verduras salteadas.',
+      ingredients: ['150 g de pechuga de pollo', '60 g de quinoa cruda', '1 calabacita en medias lunas', '½ pimiento rojo en tiras', '1 cucharadita de aceite de oliva', 'Ajo en polvo, pimentón, sal y limón'],
+      steps: ['Enjuaga la quinoa y cuécela en 120 ml de agua 15 minutos, tapada.', 'Sazona el pollo con ajo, pimentón y sal.', 'Cocina el pollo en una sartén caliente 5–6 minutos por lado.', 'Saltea las verduras con el aceite 4 minutos.', 'Sirve la quinoa, las verduras y el pollo en rebanadas con limón.'],
+      tip: 'Cocina doble cantidad de quinoa: se conserva 4 días en el refrigerador.' },
+    { id: 'ensalada-mediterranea', type: 'almuerzo', name: 'Ensalada mediterránea con garbanzos', kcal: 430, min: 15, tags: ['Vegano', 'Alto en fibra'],
+      img: 'photo-1688807462845-a06bc0abcadb', macros: { p: 16, c: 48, f: 19 },
+      desc: 'Garbanzos, pepino, tomate, aceitunas y aceite de oliva.',
+      ingredients: ['1 taza de garbanzos cocidos', '1 pepino en cubos', '1 tomate en cubos', '¼ de cebolla morada picada', '6 aceitunas', '1 cucharada de aceite de oliva', 'Jugo de limón, orégano y sal'],
+      steps: ['Enjuaga y escurre los garbanzos.', 'Pica las verduras en cubos del mismo tamaño.', 'Mezcla el aceite, el limón, el orégano y la sal.', 'Une todo en un tazón y deja reposar 5 minutos antes de servir.'],
+      tip: 'Añade 50 g de queso feta si no eres vegano: +130 kcal y más proteína.' },
+    { id: 'salmon-camote', type: 'almuerzo', name: 'Salmón al horno con camote', kcal: 580, min: 30, tags: ['Omega 3'],
+      img: 'photo-1580476262798-bddd9f4b7369', macros: { p: 36, c: 42, f: 27 },
+      desc: 'Salmón, camote asado y espárragos con limón.',
+      ingredients: ['140 g de filete de salmón', '1 camote mediano (150 g)', '6 espárragos', '1 cucharadita de aceite de oliva', 'Limón, eneldo, sal y pimienta'],
+      steps: ['Precalienta el horno a 200 °C.', 'Corta el camote en cubos, mézclalo con la mitad del aceite y hornéalo 15 minutos.', 'Añade a la bandeja el salmón y los espárragos con el resto del aceite, sal y eneldo.', 'Hornea 12 minutos más y sirve con rodajas de limón.'],
+      tip: 'El salmón está listo cuando se separa en láminas con un tenedor.' },
+    { id: 'bowl-arroz-frijoles', type: 'almuerzo', name: 'Bowl de arroz integral y frijoles', kcal: 490, min: 20, tags: ['Vegano'],
+      img: 'photo-1615865417491-9941019fbc00', macros: { p: 17, c: 82, f: 10 },
+      desc: 'Arroz integral, frijoles negros, maíz y pico de gallo.',
+      ingredients: ['¾ de taza de arroz integral cocido', '½ taza de frijoles negros cocidos', '¼ de taza de maíz', 'Pico de gallo: tomate, cebolla, cilantro y limón', '¼ de aguacate', 'Comino y sal'],
+      steps: ['Calienta los frijoles con una pizca de comino.', 'Prepara el pico de gallo picando y mezclando sus ingredientes.', 'Sirve el arroz en la base del tazón.', 'Acomoda los frijoles, el maíz, el pico de gallo y el aguacate encima.'],
+      tip: 'Arroz + frijoles forman una proteína completa: ideal si no comes carne.' },
+    { id: 'crema-calabaza', type: 'cena', name: 'Crema de calabaza con semillas', kcal: 280, min: 25, tags: ['Ligero'],
+      img: 'photo-1476718406336-bb5a9690ee2a', macros: { p: 8, c: 34, f: 12 },
+      desc: 'Calabaza, cebolla, caldo de verduras y pepitas tostadas.',
+      ingredients: ['300 g de calabaza en cubos', '½ cebolla', '1 diente de ajo', '400 ml de caldo de verduras', '1 cucharadita de aceite de oliva', '1 cucharada de pepitas de calabaza', 'Nuez moscada, sal y pimienta'],
+      steps: ['Sofríe la cebolla y el ajo en el aceite 3 minutos.', 'Añade la calabaza y el caldo y cocina 15 minutos hasta que esté blanda.', 'Licúa hasta obtener una crema y ajusta la sal y la nuez moscada.', 'Tuesta las pepitas en una sartén seca y espolvoréalas al servir.'],
+      tip: 'Congela porciones individuales: se conservan hasta 3 meses.' },
+    { id: 'tortilla-claras', type: 'cena', name: 'Tortilla de claras con champiñones', kcal: 260, min: 10, tags: ['Proteína', 'Ligero'],
+      img: 'photo-1668283653825-37b80f055b05', macros: { p: 28, c: 8, f: 12 },
+      desc: 'Claras, champiñones, espinaca y queso fresco.',
+      ingredients: ['4 claras de huevo (o 1 huevo + 3 claras)', '80 g de champiñones rebanados', '1 puñado de espinaca', '30 g de queso fresco', '1 cucharadita de aceite', 'Sal, pimienta y hierbas finas'],
+      steps: ['Saltea los champiñones en el aceite 3 minutos y añade la espinaca hasta que se marchite.', 'Bate las claras con sal y pimienta.', 'Vierte las claras sobre las verduras a fuego bajo y tapa 3 minutos.', 'Añade el queso, dobla la tortilla y sirve.'],
+      tip: 'Acompáñala con una ensalada verde para sumar volumen sin muchas calorías.' },
+    { id: 'pescado-ensalada-tibia', type: 'cena', name: 'Pescado blanco con ensalada tibia', kcal: 340, min: 20, tags: ['Bajo en grasa'],
+      img: 'photo-1676300185165-3f543c1fcb72', macros: { p: 32, c: 18, f: 15 },
+      desc: 'Filete de pescado blanco, hojas verdes y verduras asadas.',
+      ingredients: ['150 g de filete de pescado blanco (tilapia, merluza o basa)', '1 taza de hojas verdes', '½ calabacita y ½ pimiento en tiras', '1 cucharadita de aceite de oliva', 'Limón, ajo, perejil y sal'],
+      steps: ['Asa las verduras en una sartén con la mitad del aceite 5 minutos.', 'Sazona el pescado con ajo, sal y limón.', 'Cocínalo con el resto del aceite 3 minutos por lado.', 'Sirve sobre las hojas verdes con las verduras tibias y perejil.'],
+      tip: 'El pescado blanco es de las proteínas más ligeras: perfecto para la cena.' },
+    { id: 'wrap-pavo', type: 'cena', name: 'Wrap integral de pavo y vegetales', kcal: 410, min: 10, tags: ['Proteína'],
+      img: 'photo-1584947897804-408958123f1d', macros: { p: 28, c: 40, f: 14 },
+      desc: 'Tortilla integral, pavo, lechuga, zanahoria y hummus.',
+      ingredients: ['1 tortilla integral grande', '80 g de pechuga de pavo en rebanadas', '2 cucharadas de hummus', 'Lechuga en tiras', '½ zanahoria rallada', '¼ de pepino en bastones'],
+      steps: ['Calienta la tortilla 20 segundos en un sartén.', 'Unta el hummus en el centro.', 'Acomoda el pavo y los vegetales.', 'Dobla los extremos, enrolla firmemente y corta a la mitad.'],
+      tip: 'Envuélvelo en papel aluminio para llevarlo: aguanta bien unas horas.' },
+    { id: 'manzana-cacahuate', type: 'snack', name: 'Manzana con crema de cacahuate', kcal: 190, min: 2, tags: ['Saciante'],
+      img: 'photo-1572269852948-434ae794bb1b', macros: { p: 5, c: 25, f: 9 },
+      desc: 'Una manzana en gajos con una cucharada de crema de cacahuate.',
+      ingredients: ['1 manzana mediana', '1 cucharada (15 g) de crema de cacahuate natural', 'Canela al gusto'],
+      steps: ['Lava la manzana y córtala en gajos.', 'Sirve la crema de cacahuate en un recipiente pequeño.', 'Espolvorea canela y moja los gajos al comer.'],
+      tip: 'Elige crema de cacahuate sin azúcar añadida: solo cacahuate y sal.' },
+    { id: 'hummus-zanahoria', type: 'snack', name: 'Hummus con bastones de zanahoria', kcal: 160, min: 5, tags: ['Vegano'],
+      img: 'photo-1753364547864-679728b22c31', macros: { p: 6, c: 18, f: 8 },
+      desc: 'Tres cucharadas de hummus con zanahoria y pepino.',
+      ingredients: ['3 cucharadas de hummus', '1 zanahoria en bastones', '½ pepino en bastones', 'Pimentón al gusto'],
+      steps: ['Pela y corta la zanahoria y el pepino en bastones.', 'Sirve el hummus con un toque de pimentón.', 'Acompaña con los bastones.'],
+      tip: 'Hummus casero: garbanzos, tahini, limón, ajo y un chorrito de agua licuados.' },
+    { id: 'almendras', type: 'snack', name: 'Puñado de almendras', kcal: 150, min: 1, tags: ['Grasas saludables'],
+      img: 'photo-1608797178974-15b35a64ede9', macros: { p: 5, c: 5, f: 13 },
+      desc: 'Unas 25 g de almendras naturales.',
+      ingredients: ['25 g de almendras naturales (unas 20 piezas)'],
+      steps: ['Mide la porción en una báscula o cuéntalas.', 'Guárdalas en un recipiente pequeño para llevar.'],
+      tip: 'Tuéstalas 8 minutos a 170 °C para más sabor, sin añadir aceite ni sal.' },
+    { id: 'cottage-pina', type: 'snack', name: 'Queso cottage con piña', kcal: 170, min: 3, tags: ['Proteína'],
+      img: 'photo-1777301401075-739121f0315f', macros: { p: 14, c: 18, f: 4 },
+      desc: 'Media taza de cottage con piña natural.',
+      ingredients: ['½ taza (110 g) de queso cottage bajo en grasa', '½ taza de piña natural en cubos', 'Menta fresca (opcional)'],
+      steps: ['Sirve el cottage en un tazón.', 'Añade la piña en cubos.', 'Decora con hojas de menta.'],
+      tip: 'Cambia la piña por durazno o fresas según la temporada.' },
   ];
   const MEAL_LABEL = { desayuno: 'Desayuno', almuerzo: 'Almuerzo', cena: 'Cena', snack: 'Snack' };
+  const mealImage = (m, w = 640) => `https://images.unsplash.com/${m.img}?auto=format&fit=crop&w=${w}&q=70`;
 
   const EXERCISES = {
     bajo: [
@@ -216,8 +302,13 @@
     progreso: 'Tu progreso',
     informacion: 'Información',
     perfil: 'Perfil y ajustes',
+    sugerencias: 'Sugerencias',
     admin: 'Administración',
   };
+
+  /** Versión de los Términos y la Política que se guarda al aceptar. */
+  const LEGAL_VERSION = '1.0';
+  const LEGAL_TITLES = { terminos: 'Términos y condiciones', privacidad: 'Política de privacidad y seguridad' };
 
   /* ------------------------------------------------------------------
      Cálculos de salud
@@ -259,11 +350,27 @@
   const RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   const RE_NAME = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' -]+$/;
 
+  /** true si hay tres dígitos seguidos consecutivos, subiendo o bajando (123, 987). */
+  const hasDigitSequence = (pw) => {
+    for (let i = 0; i < pw.length - 2; i += 1) {
+      const chunk = pw.slice(i, i + 3);
+      if (!/^\d{3}$/.test(chunk)) continue;
+      const [a, b, c] = [...chunk].map(Number);
+      if (b - a === c - b && Math.abs(b - a) === 1) return true;
+    }
+    return false;
+  };
+  /** true si el mismo dígito aparece tres veces seguidas (111, 000). */
+  const hasDigitRepeat = (pw) => /(\d)\1\1/.test(pw);
+  const COMMON_PASSWORD_WORDS = ['password', 'contrasena', 'contraseña', 'qwerty', 'onelife', 'one life', 'abc123', 'admin', 'iloveyou', 'bienvenido'];
+
   const passwordRules = (pw) => ({
     length: pw.length >= 8,
     upper: /[A-ZÁÉÍÓÚÑ]/.test(pw),
     lower: /[a-záéíóúñ]/.test(pw),
     number: /\d/.test(pw),
+    sequence: !hasDigitSequence(pw),
+    repeat: !hasDigitRepeat(pw),
   });
 
   const validate = {
@@ -291,6 +398,9 @@
       if (!r.length) return 'La contraseña debe tener al menos 8 caracteres.';
       if (!r.upper || !r.lower) return 'Combina mayúsculas y minúsculas.';
       if (!r.number) return 'Incluye al menos un número.';
+      if (!r.sequence) return 'No uses números consecutivos como 123 o 987.';
+      if (!r.repeat) return 'No repitas el mismo número tres veces seguidas (como 111).';
+      if (COMMON_PASSWORD_WORDS.some((w) => v.toLowerCase().includes(w))) return 'Evita palabras muy comunes como «password», «qwerty» u «onelife».';
       const user = email.split('@')[0].toLowerCase();
       if (user.length >= 3 && v.toLowerCase().includes(user)) return 'La contraseña no debe contener tu correo.';
       return '';
@@ -549,6 +659,19 @@
     return { parts: path.split('/').filter(Boolean), params: new URLSearchParams(query) };
   };
 
+  /** Pantalla visible ('inicio', 'acceso', 'app:plan'…): si no cambia, no se toca el scroll. */
+  let currentScreen = '';
+  let previousScreen = '';
+  function enterScreen(name) {
+    if (name === currentScreen) return false;
+    previousScreen = currentScreen;
+    currentScreen = name;
+    $$('dialog[open]').forEach((d) => d.close());
+    window.scrollTo(0, 0);
+
+    return true;
+  }
+
   function route() {
     const { parts, params } = parseHash();
     const user = currentUser();
@@ -577,6 +700,11 @@
       return;
     }
 
+    if (parts[0] === 'terminos' || parts[0] === 'privacidad') {
+      showPublic(parts[0]);
+      return;
+    }
+
     if (parts[0] !== 'inicio') { location.replace('#/inicio'); return; }
     showPublic('inicio');
   }
@@ -586,9 +714,15 @@
     $('#app').hidden = true;
     $$('[data-public-view]').forEach((v) => { v.hidden = v.dataset.publicView !== name; });
     closePublicMenu();
-    document.title = name === 'acceso' ? 'Acceso — One Life' : 'One Life — Conoce tu peso, cuida tu vida';
-    if (name === 'acceso') window.scrollTo(0, 0);
+    document.title = name === 'acceso' ? 'Acceso — One Life'
+      : LEGAL_TITLES[name] ? `${LEGAL_TITLES[name]} — One Life`
+        : 'One Life — Conoce tu peso, cuida tu vida';
+    enterScreen(name);
+    onScroll();
+    if (name === 'acceso') authArt.start();
   }
+
+
 
   function showApp(view, params) {
     $('#public').hidden = true;
@@ -602,30 +736,44 @@
     $('#page-title').textContent = VIEW_TITLES[view];
     document.title = `${VIEW_TITLES[view]} — One Life`;
     closeSidebar();
-    window.scrollTo(0, 0);
+    const changed = enterScreen(`app:${view}`);
     renderShell();
-    RENDER[view]?.(params);
+    RENDER[view]?.(params, { changed });
   }
 
   /* ------------------------------------------------------------------
      Sitio público: navegación
      ------------------------------------------------------------------ */
+  /** Desplaza hasta una sección descontando la barra fija, para que el título no quede tapado. */
+  function scrollToSection(id, smooth = true) {
+    const el = id === 'top' ? null : document.getElementById(id);
+    const offset = ($('#topnav')?.offsetHeight || 0) + 12;
+    const top = el ? el.getBoundingClientRect().top + window.scrollY - offset : 0;
+    const instant = !smooth || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: Math.max(0, top), behavior: instant ? 'auto' : 'smooth' });
+  }
+
   document.addEventListener('click', (e) => {
     const a = e.target.closest('[data-scroll]');
     if (!a) return;
     e.preventDefault();
     const target = a.dataset.scroll;
-    const go = () => {
-      const el = target === 'top' ? null : document.getElementById(target);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      else window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-    if (!location.hash.startsWith('#/inicio') && location.hash !== '') {
-      location.hash = '#/inicio';
-      setTimeout(go, 50);
-    } else go();
+    $$('dialog[open]').forEach((d) => d.close());
     closePublicMenu();
+    if (currentScreen !== 'inicio') {
+      // Primero se muestra el inicio (sin animar desde arriba) y luego se baja a la sección
+      location.hash = '#/inicio';
+      requestAnimationFrame(() => requestAnimationFrame(() => scrollToSection(target, false)));
+    } else {
+      scrollToSection(target);
+    }
   });
+
+  /* Volver desde Términos / Privacidad a la pantalla anterior */
+  $$('[data-legal-back]').forEach((btn) => btn.addEventListener('click', () => {
+    if (previousScreen) history.back();
+    else location.hash = '#/inicio';
+  }));
 
   const publicMenuBtn = $('#public-menu-btn');
   function closePublicMenu() {
@@ -640,7 +788,6 @@
 
   /* Botón volver arriba */
   const toTop = $('#to-top');
-  window.addEventListener('scroll', () => { toTop.hidden = window.scrollY < 600; }, { passive: true });
   toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
   /* ------------------------------------------------------------------
@@ -683,10 +830,14 @@
 
   /* Medidor de fuerza en registro */
   $('#reg-password').addEventListener('input', (e) => {
-    const rules = passwordRules(e.target.value);
-    const score = Object.values(rules).filter(Boolean).length;
-    $('.strength', e.target.form).dataset.level = e.target.value ? score : 0;
-    $$('#reg-password-rules li').forEach((li) => li.classList.toggle('is-ok', rules[li.dataset.rule]));
+    const value = e.target.value;
+    const rules = passwordRules(value);
+    const passed = Object.values(rules).filter(Boolean).length;
+    const total = Object.keys(rules).length;
+    // 4 barras: solo se llena del todo si se cumplen todas las reglas
+    const level = !value ? 0 : passed === total ? 4 : Math.min(3, Math.max(1, Math.floor((passed / total) * 4)));
+    $('.strength', e.target.form).dataset.level = level;
+    $$('#reg-password-rules li').forEach((li) => li.classList.toggle('is-ok', Boolean(value) && rules[li.dataset.rule]));
   });
 
   /* Validación al salir de un campo */
@@ -827,7 +978,8 @@
       email: validate.email(email),
       password: validate.newPassword(password, email),
       confirm: !form.confirm.value ? 'Confirma tu contraseña.' : form.confirm.value !== password ? 'Las contraseñas no coinciden.' : '',
-      terms: form.terms.checked ? '' : 'Debes aceptar para continuar.',
+      terms: form.terms.checked ? '' : 'Debes aceptar los Términos y condiciones.',
+      privacy: form.privacy.checked ? '' : 'Debes aceptar la Política de privacidad y seguridad.',
     };
     if (!applyErrors(form, errors) || !requireDb(form)) return;
 
@@ -836,7 +988,11 @@
     await withBusy(btn, async () => {
       let result;
       try {
-        result = await db.signUp(name, email, password);
+        result = await db.signUp(name, email, password, {
+          terms: form.terms.checked,
+          privacy: form.privacy.checked,
+          version: LEGAL_VERSION,
+        });
       } catch (err) {
         if (/Ya existe/.test(err.message)) setError(form.email, err.message);
         else formAlert(form, err.message);
@@ -1171,7 +1327,14 @@
   /* ---------- Plan de alimentación ---------- */
   let mealTab = 'recomendado';
 
-  RENDER.plan = () => {
+  RENDER.plan = (params, { changed = true } = {}) => {
+    // Abrir o cerrar una receta solo cambia el ?receta= de la URL: no se vuelve a dibujar el plan
+    const recipeId = params?.get('receta');
+    if (!changed) {
+      if (recipeId) openRecipe(recipeId); else closeRecipe();
+      return;
+    }
+    if (recipeId) requestAnimationFrame(() => openRecipe(recipeId));
     const u = currentUser();
     const p = u.profile;
     const cal = calcCalories(p);
@@ -1219,8 +1382,9 @@
     }
     $('#plan-tab-note').textContent = note;
     $('#plan-meals').innerHTML = list.map((m) => `
-      <article class="meal">
-        <div class="meal__plate">
+      <a class="meal" href="#/app/plan?receta=${m.id}" aria-label="Ver la receta: ${m.name}">
+        <div class="meal__media">
+          <img src="${mealImage(m, 480)}" alt="" loading="lazy" decoding="async" width="480" height="360" data-fallback>
           <span class="meal__type">${MEAL_LABEL[m.type]}</span>
           <span class="meal__kcal">${m.kcal}<small> kcal</small></span>
         </div>
@@ -1229,9 +1393,84 @@
           <p>${m.desc}</p>
           <div class="meal__meta"><span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${m.min} min</span>${cal ? `<span>${Math.round((m.kcal / cal.target) * 100)} % del día</span>` : ''}</div>
           <div class="tags">${m.tags.map((t) => `<span class="tag">${t}</span>`).join('')}</div>
+          <span class="meal__cta">Ver receta <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
         </div>
-      </article>`).join('');
+      </a>`).join('');
   }
+
+  /* ---------- Receta detallada ---------- */
+  const recipeDialog = $('#recipe-dialog');
+
+  function openRecipe(id) {
+    const m = MEALS.find((x) => x.id === id);
+    if (!m) {
+      toast('No encontramos esa receta.', 'error');
+      location.replace('#/app/plan');
+      return;
+    }
+    const cal = calcCalories(currentUser().profile);
+    const siblings = MEALS.filter((x) => x.type === m.type);
+    const i = siblings.indexOf(m);
+    const prev = siblings[(i - 1 + siblings.length) % siblings.length];
+    const next = siblings[(i + 1) % siblings.length];
+    $('#recipe-body').innerHTML = `
+      <div class="recipe__hero">
+        <img src="${mealImage(m, 1200)}" alt="${escapeHTML(m.name)}" decoding="async" data-fallback>
+        <button type="button" class="icon-btn" data-close-recipe aria-label="Cerrar receta"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        <div class="recipe__hero-text">
+          <span class="badge badge--accent">${MEAL_LABEL[m.type]}</span>
+          <h2 class="h-md" id="recipe-title">${m.name}</h2>
+        </div>
+        <a class="recipe__credit" href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Foto: Unsplash</a>
+      </div>
+      <div class="recipe__content">
+        <div class="recipe__facts">
+          <div><strong>${m.kcal}</strong><span>kcal</span></div>
+          <div><strong>${m.min}</strong><span>minutos</span></div>
+          <div><strong>${m.macros.p} g</strong><span>proteína</span></div>
+          <div><strong>${cal ? `${Math.round((m.kcal / cal.target) * 100)} %` : '1'}</strong><span>${cal ? 'de tu día' : 'porción'}</span></div>
+        </div>
+        <p class="muted">${m.desc} Carbohidratos: ${m.macros.c} g · Grasas: ${m.macros.f} g.</p>
+        <div class="recipe__cols">
+          <div>
+            <h3>Ingredientes</h3>
+            <ul class="recipe__ingredients">
+              ${m.ingredients.map((ing) => `<li><label><input type="checkbox"><span>${ing}</span></label></li>`).join('')}
+            </ul>
+          </div>
+          <div>
+            <h3>Preparación</h3>
+            <ol class="recipe__steps">${m.steps.map((s) => `<li><span>${s}</span></li>`).join('')}</ol>
+          </div>
+        </div>
+        <p class="recipe__tip"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span><strong>Consejo:</strong> ${m.tip}</span></p>
+        <div class="tags">${m.tags.map((t) => `<span class="tag">${t}</span>`).join('')}</div>
+        <div class="recipe__nav">
+          <a class="btn btn--ghost btn--sm" href="#/app/plan?receta=${prev.id}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ${prev.name}</a>
+          <a class="btn btn--ghost btn--sm" href="#/app/plan?receta=${next.id}">${next.name} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        </div>
+      </div>`;
+    recipeDialog.scrollTop = 0;
+    if (!recipeDialog.open) recipeDialog.showModal();
+    $('[data-close-recipe]', recipeDialog).focus();
+  }
+
+  function closeRecipe() {
+    if (recipeDialog.open) recipeDialog.close();
+  }
+
+  // Al cerrar (botón, Escape o clic fuera) se quita ?receta= de la URL
+  recipeDialog.addEventListener('close', () => {
+    if (parseHash().params.has('receta')) location.replace('#/app/plan');
+  });
+  recipeDialog.addEventListener('click', (e) => {
+    if (e.target === recipeDialog || e.target.closest('[data-close-recipe]')) closeRecipe();
+  });
+
+  // Si una foto no carga, se muestra un fondo verde con un icono en su lugar
+  document.addEventListener('error', (e) => {
+    if (e.target.tagName === 'IMG' && e.target.hasAttribute('data-fallback')) e.target.parentElement.classList.add('is-broken');
+  }, true);
 
   $('#plan-tabs').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-meal]');
@@ -1818,8 +2057,14 @@
     location.hash = '#/inicio';
   });
 
+  /* ---------- Sugerencias ---------- */
+  RENDER.sugerencias = () => {
+    const form = $('[data-feedback="app"] form');
+    if (form) prefillFeedback(form);
+  };
+
   /* ---------- Administración ---------- */
-  const adminState = { users: [], range: 30, query: '' };
+  const adminState = { users: [], range: 30, query: '', feedback: [], fbStatus: 'todas' };
 
   RENDER.admin = () => { loadAdmin(); };
 
@@ -1828,17 +2073,20 @@
     errorBox.hidden = true;
     $('#admin-tiles').innerHTML = Array.from({ length: 8 }, () => '<article class="tile tile--loading"><span class="tile__label">Cargando…</span><span class="tile__value">—</span></article>').join('');
     try {
-      const [metrics, dist, logins, users] = await Promise.all([
+      const [metrics, dist, logins, users, feedback] = await Promise.all([
         db.admin.metrics(),
         db.admin.bmiDistribution(),
         db.admin.loginsPerDay(adminState.range),
         db.admin.listUsers(),
+        db.admin.listFeedback(),
       ]);
       renderAdminMetrics(metrics);
       renderAdminDistribution(dist);
       renderAdminLogins(logins);
       adminState.users = users;
       renderAdminUsers();
+      adminState.feedback = feedback;
+      renderAdminFeedback();
     } catch (err) {
       errorBox.hidden = false;
       errorBox.textContent = `No se pudieron cargar las métricas: ${err.message}`;
@@ -1993,6 +2241,416 @@
     }
   });
 
+  const FB_STATUS_LABEL = { nuevo: 'Nueva', leido: 'Leída', resuelto: 'Resuelta' };
+  const FB_KIND_LABEL = { sugerencia: 'Sugerencia', comentario: 'Comentario', problema: 'Problema', otro: 'Otro' };
+
+  function renderAdminFeedback() {
+    const all = adminState.feedback;
+    const fresh = all.filter((f) => f.status === 'nuevo').length;
+    $('#admin-fb-count').textContent = `${fresh} ${fresh === 1 ? 'nueva' : 'nuevas'} · ${all.length} en total`;
+    const list = adminState.fbStatus === 'todas' ? all : all.filter((f) => f.status === adminState.fbStatus);
+    const host = $('#admin-feedback');
+    if (!list.length) {
+      host.innerHTML = `<li class="empty"><i class="fa-solid fa-inbox" aria-hidden="true"></i><span>${all.length ? 'No hay mensajes con este estado.' : 'Aún no ha llegado ninguna sugerencia.'}</span></li>`;
+      return;
+    }
+    host.innerHTML = list.map((f) => {
+      const stars = f.rating ? `<span class="fb-item__stars" aria-label="${f.rating} de 5 estrellas">${'★'.repeat(f.rating)}${'☆'.repeat(5 - f.rating)}</span>` : '';
+      const subject = encodeURIComponent(`One Life: tu ${FB_KIND_LABEL[f.kind].toLowerCase()}`);
+      return `<li class="fb-item is-${f.status}">
+        <div class="fb-item__head">
+          <strong>${escapeHTML(f.name)}</strong>
+          <span>${escapeHTML(f.email)}</span>
+          <span class="badge badge--sm">${FB_KIND_LABEL[f.kind] || escapeHTML(f.kind)}</span>
+          ${stars}
+          <span>${fmtDateTime(f.created_at)}</span>
+          <span class="badge badge--sm${f.status === 'nuevo' ? ' badge--accent' : ''}">${FB_STATUS_LABEL[f.status]}</span>
+        </div>
+        <p class="fb-item__msg">${escapeHTML(f.message)}</p>
+        <div class="row-actions">
+          ${f.status !== 'leido' ? `<button class="btn btn--ghost btn--sm" data-fb-status="leido" data-fb-id="${f.id}"><i class="fa-solid fa-envelope-open" aria-hidden="true"></i> Marcar leída</button>` : ''}
+          ${f.status !== 'resuelto' ? `<button class="btn btn--ghost btn--sm" data-fb-status="resuelto" data-fb-id="${f.id}"><i class="fa-solid fa-check" aria-hidden="true"></i> Resuelta</button>` : ''}
+          <a class="btn btn--ghost btn--sm" href="mailto:${encodeURIComponent(f.email)}?subject=${subject}"><i class="fa-solid fa-reply" aria-hidden="true"></i> Responder</a>
+          <button class="icon-btn icon-btn--danger" data-fb-delete="${f.id}" aria-label="Eliminar el mensaje de ${escapeHTML(f.name)}" title="Eliminar"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+        </div>
+      </li>`;
+    }).join('');
+  }
+
+  $('#admin-fb-filter').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-status]');
+    if (!btn) return;
+    adminState.fbStatus = btn.dataset.status;
+    selectTab($('#admin-fb-filter'), btn);
+    renderAdminFeedback();
+  });
+
+  $('#admin-feedback').addEventListener('click', async (e) => {
+    const statusBtn = e.target.closest('[data-fb-status]');
+    const delBtn = e.target.closest('[data-fb-delete]');
+    if (statusBtn) {
+      const id = Number(statusBtn.dataset.fbId);
+      const status = statusBtn.dataset.fbStatus;
+      try {
+        await db.admin.setFeedbackStatus(id, status);
+      } catch (err) {
+        toast(err.message, 'error');
+        return;
+      }
+      const item = adminState.feedback.find((f) => f.id === id);
+      if (item) item.status = status;
+      renderAdminFeedback();
+    }
+    if (delBtn) {
+      const id = Number(delBtn.dataset.fbDelete);
+      const item = adminState.feedback.find((f) => f.id === id);
+      const ok = await confirmDialog({
+        title: 'Eliminar mensaje',
+        body: `Se borrará el mensaje de ${item?.name || 'esta persona'}. No se puede deshacer.`,
+        confirmLabel: 'Eliminar',
+      });
+      if (!ok) return;
+      try {
+        await db.admin.deleteFeedback(id);
+      } catch (err) {
+        toast(err.message, 'error');
+        return;
+      }
+      adminState.feedback = adminState.feedback.filter((f) => f.id !== id);
+      renderAdminFeedback();
+      toast('Mensaje eliminado.', 'success');
+    }
+  });
+
+  /* ------------------------------------------------------------------
+     Contacto: formulario de sugerencias y comentarios
+     Se dibuja en dos sitios (sitio público y app) con el mismo código.
+     ------------------------------------------------------------------ */
+  const FEEDBACK_KINDS = [
+    { key: 'sugerencia', label: 'Sugerencia', icon: 'fa-lightbulb' },
+    { key: 'comentario', label: 'Comentario', icon: 'fa-comment' },
+    { key: 'problema', label: 'Problema', icon: 'fa-bug' },
+    { key: 'otro', label: 'Otro', icon: 'fa-ellipsis' },
+  ];
+  const RATING_TEXT = ['', 'Muy mala', 'Mala', 'Regular', 'Buena', 'Excelente'];
+  const FB_MIN = 10;
+  const FB_MAX = 1000;
+  const FB_COOLDOWN_MS = 60 * 1000;
+
+  function feedbackFormHTML(p) {
+    const kinds = FEEDBACK_KINDS.map((k) => `
+      <label><input type="radio" name="kind" value="${k.key}"><span><i class="fa-solid ${k.icon}" aria-hidden="true"></i>${k.label}</span></label>`).join('');
+    const stars = [5, 4, 3, 2, 1].map((n) => `
+      <input type="radio" name="rating" id="${p}-r${n}" value="${n}"><label for="${p}-r${n}" title="${n} de 5" aria-label="${n} de 5 estrellas"><i class="fa-solid fa-star" aria-hidden="true"></i></label>`).join('');
+    return `
+      <form class="fb-form" id="${p}-form" novalidate>
+        <div class="fb-form__head">
+          <h3 class="h-md">Envíanos tu mensaje</h3>
+          <p class="muted">Todos los campos son obligatorios salvo la calificación.</p>
+        </div>
+        <div class="form-alert" role="alert" hidden></div>
+        <div class="form-row">
+          <div class="field">
+            <label for="${p}-name">Nombre</label>
+            <input id="${p}-name" name="name" autocomplete="name" maxlength="40" placeholder="Tu nombre" aria-describedby="${p}-name-error">
+            <span class="field__error" id="${p}-name-error"></span>
+          </div>
+          <div class="field">
+            <label for="${p}-email">Correo electrónico</label>
+            <input id="${p}-email" name="email" type="email" autocomplete="email" maxlength="120" placeholder="tu@correo.com" aria-describedby="${p}-email-error">
+            <span class="field__error" id="${p}-email-error"></span>
+          </div>
+        </div>
+        <fieldset class="field">
+          <legend>¿Qué quieres enviarnos?</legend>
+          <div class="kind-picker" id="${p}-kind" role="radiogroup" aria-describedby="${p}-kind-error">${kinds}</div>
+          <span class="field__error" id="${p}-kind-error"></span>
+        </fieldset>
+        <div class="field">
+          <span class="label-like" id="${p}-rating-label">¿Cómo calificas One Life? <span class="optional">(opcional)</span></span>
+          <div class="rating-row">
+            <div class="stars" role="radiogroup" aria-labelledby="${p}-rating-label">${stars}</div>
+            <span class="caption muted" data-rating-text></span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="${p}-message">Mensaje</label>
+          <textarea id="${p}-message" name="message" maxlength="${FB_MAX}" rows="5" placeholder="Cuéntanos con detalle: qué te gustaría, qué pasó o qué opinas." aria-describedby="${p}-message-error ${p}-message-count"></textarea>
+          <div class="field__foot">
+            <span class="field__error" id="${p}-message-error"></span>
+            <span class="counter" id="${p}-message-count">0 / ${FB_MAX}</span>
+          </div>
+        </div>
+        <div class="hp-field" aria-hidden="true">
+          <label for="${p}-website">Deja este campo vacío</label>
+          <input id="${p}-website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="${p}-consent" name="consent" aria-describedby="${p}-consent-error"> <span>Acepto que One Life use estos datos solo para responderme, según la <button type="button" class="link" data-legal="privacidad" data-legal-check="${p}-consent">Política de privacidad</button>.</span></label>
+          <span class="field__error" id="${p}-consent-error"></span>
+        </div>
+        <button type="submit" class="btn btn--primary btn--block" data-busy="Enviando…"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar mensaje</button>
+      </form>`;
+  }
+
+  function prefillFeedback(form) {
+    const u = currentUser();
+    if (!u) return;
+    if (!form.name.value) form.name.value = u.name;
+    if (!form.email.value) form.email.value = u.email;
+  }
+
+  function mountFeedback(host, p) {
+    host.innerHTML = feedbackFormHTML(p);
+    const form = $('form', host);
+    const counter = $(`#${p}-message-count`);
+    const picker = $(`#${p}-kind`);
+    prefillFeedback(form);
+
+    form.message.addEventListener('input', () => {
+      const n = form.message.value.trim().length;
+      counter.textContent = `${n} / ${FB_MAX}`;
+      counter.classList.toggle('is-near', n >= FB_MAX * 0.9 && n <= FB_MAX);
+      counter.classList.toggle('is-over', n > FB_MAX);
+    });
+    form.addEventListener('change', (e) => {
+      if (e.target.name === 'rating') $('[data-rating-text]', form).textContent = RATING_TEXT[e.target.value];
+      if (e.target.name === 'kind') {
+        picker.removeAttribute('aria-invalid');
+        $(`#${p}-kind-error`).textContent = '';
+      }
+    });
+    form.name.addEventListener('blur', () => { if (form.name.value.trim()) setError(form.name, validate.name(form.name.value)); });
+    form.email.addEventListener('blur', () => { if (form.email.value.trim()) setError(form.email, validate.email(form.email.value)); });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearForm(form);
+      picker.removeAttribute('aria-invalid');
+
+      // Campo trampa: las personas no lo ven; si viene lleno, es un bot. Se finge éxito.
+      if (form.website.value) { showFeedbackSuccess(host, p); return; }
+
+      const name = form.name.value.trim().replace(/\s+/g, ' ');
+      const email = form.email.value.trim().toLowerCase();
+      const kind = form.kind.value;
+      const message = form.message.value.trim();
+      const links = (message.match(/https?:\/\/|www\./gi) || []).length;
+
+      let messageError = '';
+      if (!message) messageError = 'Escribe tu mensaje.';
+      else if (message.length < FB_MIN) messageError = `Cuéntanos un poco más (mínimo ${FB_MIN} caracteres).`;
+      else if (message.length > FB_MAX) messageError = `El mensaje no puede superar ${FB_MAX} caracteres.`;
+      else if (links > 2) messageError = 'Incluye como máximo 2 enlaces.';
+      else if (/(.)\1{9,}/.test(message)) messageError = 'Parece que el mensaje tiene caracteres repetidos de más.';
+
+      const kindError = kind ? '' : 'Elige el tipo de mensaje.';
+      $(`#${p}-kind-error`).textContent = kindError;
+      if (kindError) picker.setAttribute('aria-invalid', 'true');
+
+      const ok = applyErrors(form, {
+        name: validate.name(name),
+        email: validate.email(email),
+        message: messageError,
+        consent: form.consent.checked ? '' : 'Debes aceptar para que podamos responderte.',
+      });
+      if (!ok || kindError) {
+        if (ok && kindError) $('input', picker).focus();
+        return;
+      }
+
+      const wait = FB_COOLDOWN_MS - (Date.now() - storage.get(KEYS.feedbackAt, 0));
+      if (wait > 0) {
+        formAlert(form, `Acabas de enviar un mensaje. Espera ${Math.ceil(wait / 1000)} s antes de mandar otro.`);
+        return;
+      }
+      if (!requireDb(form)) return;
+
+      const btn = $('button[type="submit"]', form);
+      await withBusy(btn, async () => {
+        try {
+          await db.sendFeedback({ name, email, kind, rating: Number(form.rating.value) || null, message });
+        } catch (err) {
+          formAlert(form, err.message);
+          return;
+        }
+        storage.set(KEYS.feedbackAt, Date.now());
+        showFeedbackSuccess(host, p);
+      });
+    });
+  }
+
+  function showFeedbackSuccess(host, p) {
+    host.innerHTML = `
+      <div class="fb-success" role="status">
+        <i class="fa-solid fa-check" aria-hidden="true"></i>
+        <h3 class="h-md">¡Gracias por escribirnos!</h3>
+        <p class="muted">Recibimos tu mensaje. Si necesita respuesta, te escribiremos al correo que nos dejaste.</p>
+        <button type="button" class="btn btn--ghost" data-fb-again>Enviar otro mensaje</button>
+      </div>`;
+    $('[data-fb-again]', host).addEventListener('click', () => {
+      mountFeedback(host, p);
+      $('input', host).focus();
+    });
+  }
+
+  $$('[data-feedback]').forEach((host) => mountFeedback(host, host.dataset.feedback === 'app' ? 'fba' : 'fbp'));
+
+  // Correo de contacto opcional (js/config.js → contactEmail)
+  const contactEmail = (window.ONE_LIFE_CONFIG || {}).contactEmail;
+  if (contactEmail && RE_EMAIL.test(contactEmail)) {
+    const card = $('#contact-email');
+    card.href = `mailto:${contactEmail}`;
+    $('[data-bind-contact-email]', card).textContent = contactEmail;
+    card.hidden = false;
+  }
+
+  /* ------------------------------------------------------------------
+     Términos y Política: diálogo de lectura y aceptación
+     ------------------------------------------------------------------ */
+  const legalDialog = $('#legal-dialog');
+  const legalBody = $('#legal-dialog-body');
+  const legalAccept = $('#legal-accept');
+  let legalCheckId = '';
+
+  function checkLegalRead() {
+    const atEnd = legalBody.scrollTop + legalBody.clientHeight >= legalBody.scrollHeight - 24;
+    if (atEnd) {
+      legalAccept.disabled = false;
+      $('#legal-dialog-hint').hidden = true;
+    }
+  }
+
+  function openLegal(doc, checkId) {
+    if (typeof legalDialog.showModal !== 'function') { location.hash = `#/${doc}`; return; }
+    legalCheckId = checkId || '';
+    $('#legal-dialog-title').textContent = LEGAL_TITLES[doc];
+    legalBody.innerHTML = $(`#legal-${doc}`).innerHTML;
+    legalAccept.hidden = !legalCheckId;
+    legalAccept.disabled = true;
+    $('#legal-dialog-hint').hidden = !legalCheckId;
+    legalDialog.showModal();
+    legalBody.scrollTop = 0;
+    legalBody.focus();
+    requestAnimationFrame(checkLegalRead);
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-legal]');
+    if (!btn) return;
+    e.preventDefault();
+    const fallback = { terminos: 'reg-terms', privacidad: 'reg-privacy' };
+    const checkId = btn.dataset.legalCheck || (btn.closest('#register-form') ? fallback[btn.dataset.legal] : '');
+    openLegal(btn.dataset.legal, checkId);
+  });
+  legalBody.addEventListener('scroll', checkLegalRead, { passive: true });
+  legalAccept.addEventListener('click', () => {
+    const box = document.getElementById(legalCheckId);
+    if (box) {
+      box.checked = true;
+      setError(box, '');
+    }
+    legalDialog.close();
+    box?.focus();
+  });
+  legalDialog.addEventListener('click', (e) => {
+    if (e.target === legalDialog || e.target.closest('[data-close-dialog]')) legalDialog.close();
+  });
+
+  /* ------------------------------------------------------------------
+     Panel visual del acceso (solo decorativo)
+     - Profundidad 3D que sigue al ratón (solo con ratón, no en pantallas táctiles)
+     - Corazón animado de LottieFiles, cargado solo al abrir el acceso
+     - Fondo interactivo de Unicorn Studio si hay unicornProjectId en js/config.js
+     Si algo externo falla, queda la versión estática: el formulario no depende de esto.
+     ------------------------------------------------------------------ */
+  const AUTH_ART = {
+    lottieModule: 'https://cdn.jsdelivr.net/npm/@lottiefiles/dotlottie-wc@0.9.28/+esm',
+    lottieSrc: 'https://assets-v2.lottiefiles.com/a/56dd16a4-1151-11ee-867b-e386a9d6429e/201nM9rDZ8.lottie',
+    unicornScript: 'https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.3.0/dist/unicornStudio.umd.js',
+  };
+
+  const authArt = (() => {
+    const art = $('#auth-art');
+    let started = false;
+    const calm = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function enableDepth() {
+      if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches || calm()) return;
+      let queued = false;
+      let x = 0;
+      let y = 0;
+      art.addEventListener('pointermove', (e) => {
+        const r = art.getBoundingClientRect();
+        x = clamp(((e.clientX - r.left) / r.width) * 2 - 1, -1, 1);
+        y = clamp(((e.clientY - r.top) / r.height) * 2 - 1, -1, 1);
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => {
+          queued = false;
+          art.style.setProperty('--tx', x.toFixed(3));
+          art.style.setProperty('--ty', y.toFixed(3));
+        });
+      });
+      art.addEventListener('pointerleave', () => {
+        art.style.setProperty('--tx', 0);
+        art.style.setProperty('--ty', 0);
+      });
+    }
+
+    async function loadLottie() {
+      if (calm()) return;
+      const host = $('#auth-lottie');
+      try {
+        await import(AUTH_ART.lottieModule);
+        const player = document.createElement('dotlottie-wc');
+        player.setAttribute('src', AUTH_ART.lottieSrc);
+        player.setAttribute('autoplay', '');
+        player.setAttribute('loop', '');
+        host.append(player);
+        // Se oculta el icono estático solo cuando la animación ya se dibujó
+        for (let i = 0; i < 30; i += 1) {
+          await new Promise((r) => setTimeout(r, 100));
+          if (player.dotLottie?.isLoaded) { host.classList.add('is-animated'); return; }
+        }
+        player.remove();
+      } catch {
+        /* Sin conexión con el CDN: se queda el corazón 3D estático */
+      }
+    }
+
+    function loadUnicorn() {
+      const id = String((window.ONE_LIFE_CONFIG || {}).unicornProjectId || '').trim();
+      if (!id || !/^[A-Za-z0-9_-]{6,80}$/.test(id) || calm() || window.innerWidth < 960) return;
+      const run = () => window.UnicornStudio.addScene({
+        elementId: 'auth-unicorn',
+        projectId: id,
+        fps: 60,
+        scale: 0.75, // menos píxeles = más fluido; sube a 1 si lo quieres más nítido
+        dpi: 1.5,
+        lazyLoad: true,
+      }).then(() => art.classList.add('has-unicorn'))
+        .catch((err) => console.warn('[One Life] Unicorn Studio no cargó; se usa el fondo CSS.', err));
+      if (window.UnicornStudio) { run(); return; }
+      const script = document.createElement('script');
+      script.src = AUTH_ART.unicornScript;
+      script.async = true;
+      script.onload = run;
+      script.onerror = () => console.warn('[One Life] No se pudo descargar Unicorn Studio; se usa el fondo CSS.');
+      document.head.append(script);
+    }
+
+    return {
+      start() {
+        if (started || !art) return;
+        started = true;
+        enableDepth();
+        loadLottie();
+        loadUnicorn();
+      },
+    };
+  })();
+
   /* ------------------------------------------------------------------
      Animaciones de entrada (sitio público)
      ------------------------------------------------------------------ */
@@ -2032,7 +2690,7 @@
   }
 
   // Bloques que aparecen al entrar en pantalla, escalonados dentro de su contenedor
-  const AUTO_REVEAL = '.section-head > *, .split > *, .feature, .steps li, .accordion details, .cta-band__inner > *, .hero__stats > div, .footer__inner > *, .auth__box, .auth__art';
+  const AUTO_REVEAL = '.section-head > *, .split > *, .feature, .steps li, .accordion details, .contact-card, .contact__form, .cta-band__inner > *, .hero__stats > div, .footer__inner > *, .auth__box, .auth__art';
 
   const revealObserver = !reduceMotion && 'IntersectionObserver' in window
     ? new IntersectionObserver((entries) => {
@@ -2040,6 +2698,8 @@
         if (!entry.isIntersecting) return;
         const el = entry.target;
         el.classList.add('is-visible');
+        // Terminada la entrada se quita el filtro: así el scroll no tiene que repintarlo
+        el.addEventListener('transitionend', (ev) => { if (ev.target === el) el.classList.add('is-done'); }, { once: false });
         $$('[data-count]', el).forEach(countUp);
         revealObserver.unobserve(el);
       });
@@ -2062,16 +2722,28 @@
 
   /* Encabezado translúcido al hacer scroll y enlace activo según la sección */
   const topnav = $('#topnav');
-  const navSections = ['imc', 'funciones', 'faq'];
-  window.addEventListener('scroll', () => {
-    topnav.classList.toggle('is-scrolled', window.scrollY > 8);
-    let current = 'top';
-    navSections.forEach((id) => {
+  const navSections = ['imc', 'funciones', 'faq', 'contacto'];
+  const navLinks = $$('.topnav__group--center .navlink');
+  function onScroll() {
+    const y = window.scrollY;
+    toTop.hidden = y < 600;
+    topnav.classList.toggle('is-scrolled', y > 8);
+    let current = currentScreen === 'inicio' ? 'top' : '';
+    if (current) navSections.forEach((id) => {
+
       const el = document.getElementById(id);
       if (el && el.getBoundingClientRect().top < window.innerHeight * 0.4) current = id;
     });
-    $$('.topnav__group--center .navlink').forEach((a) => a.classList.toggle('is-active', a.dataset.scroll === current));
+    navLinks.forEach((a) => a.classList.toggle('is-active', a.dataset.scroll === current));
+  }
+  // Una sola medición por fotograma: el scroll no se traba aunque el evento llegue muchas veces
+  let scrollQueued = false;
+  window.addEventListener('scroll', () => {
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(() => { scrollQueued = false; onScroll(); });
   }, { passive: true });
+
 
   /* ------------------------------------------------------------------
      Arranque

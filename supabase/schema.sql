@@ -11,7 +11,7 @@
 --   1. Tablas
 --   2. Funciones auxiliares (¿es admin?, crear perfil al registrarse...)
 --   3. Seguridad por fila (RLS): cada usuario ve lo suyo, el admin todo
---   4. Métricas para el panel de administrador
+--   4. Métricas para el panel de administrador (incluye sugerencias)
 --   5. Permisos
 --   6. Cuenta de administrador predeterminada (al final)
 -- =====================================================================
@@ -39,6 +39,12 @@ create table if not exists public.profiles (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Aceptación de los Términos y condiciones y de la Política de privacidad
+-- (obligatoria para crear cuenta; la guarda el trigger handle_new_user).
+alter table public.profiles add column if not exists terms_accepted_at   timestamptz;
+alter table public.profiles add column if not exists privacy_accepted_at timestamptz;
+alter table public.profiles add column if not exists legal_version       text check (char_length(legal_version) <= 20);
 
 -- Historial de peso. El IMC lo calcula la base de datos sola
 -- (columna generada), así nunca queda desincronizado.
@@ -82,11 +88,29 @@ create table if not exists public.admin_emails (
   created_at timestamptz not null default now()
 );
 
+-- Sugerencias y comentarios del formulario de contacto. Cualquiera puede
+-- enviar uno (con o sin sesión), pero solo el administrador puede leerlos.
+create table if not exists public.feedback (
+  id         bigint generated always as identity primary key,
+  user_id    uuid references public.profiles (id) on delete set null,
+  name       text not null check (char_length(name) between 2 and 60),
+  email      text not null check (char_length(email) between 5 and 120
+                                  and email ~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]{2,}$'),
+  kind       text not null check (kind in ('sugerencia', 'comentario', 'problema', 'otro')),
+  rating     int check (rating between 1 and 5),
+  message    text not null check (char_length(message) between 10 and 1000),
+  status     text not null default 'nuevo' check (status in ('nuevo', 'leido', 'resuelto')),
+  created_at timestamptz not null default now()
+);
+
 -- Índices: aceleran las consultas por usuario y fecha.
 create index if not exists weight_records_user_date_idx on public.weight_records (user_id, date desc);
 create index if not exists activities_user_date_idx     on public.activities (user_id, date desc);
 create index if not exists login_events_created_idx     on public.login_events (created_at desc);
 create index if not exists login_events_user_idx        on public.login_events (user_id);
+create index if not exists feedback_created_idx         on public.feedback (created_at desc);
+create index if not exists feedback_email_idx           on public.feedback (email, created_at desc);
+create index if not exists feedback_user_idx            on public.feedback (user_id);
 
 
 -- =====================================================================
@@ -111,7 +135,11 @@ as $$
 $$;
 
 -- Crea el perfil automáticamente cuando alguien se registra.
--- El nombre llega desde la app en options.data.name al hacer signUp.
+-- La app manda en options.data: name, accepted_terms, accepted_privacy y
+-- legal_version. Si no se aceptaron los Términos Y la Política, el registro
+-- se rechaza aquí, en el servidor, aunque alguien salte la validación de la
+-- página. (Las cuentas creadas a mano desde el panel de Supabase también
+-- necesitan esos datos: créalas mejor registrándote desde la app.)
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -119,17 +147,22 @@ security definer
 set search_path = public
 as $$
 declare
-  v_name text := trim(coalesce(new.raw_user_meta_data ->> 'name', ''));
+  v_meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
+  v_name text := trim(coalesce(v_meta ->> 'name', ''));
   v_role text := case
     when exists (select 1 from public.admin_emails where email = lower(new.email)) then 'admin'
     else 'user'
   end;
 begin
+  if (v_meta ->> 'accepted_terms') is distinct from 'true'
+     or (v_meta ->> 'accepted_privacy') is distinct from 'true' then
+    raise exception 'terminos_no_aceptados' using errcode = 'P0001';
+  end if;
   if char_length(v_name) < 2 then
     v_name := 'Usuario';
   end if;
-  insert into public.profiles (id, name, role)
-  values (new.id, left(v_name, 40), v_role)
+  insert into public.profiles (id, name, role, terms_accepted_at, privacy_accepted_at, legal_version)
+  values (new.id, left(v_name, 40), v_role, now(), now(), left(nullif(v_meta ->> 'legal_version', ''), 20))
   on conflict (id) do nothing;
   return new;
 end;
@@ -176,10 +209,48 @@ begin
     raise exception 'Solo un administrador puede cambiar roles'
       using errcode = '42501';
   end if;
+  -- La fecha de aceptación de los términos no se puede reescribir desde la app.
+  if auth.uid() is not null then
+    new.terms_accepted_at   := old.terms_accepted_at;
+    new.privacy_accepted_at := old.privacy_accepted_at;
+    new.legal_version       := old.legal_version;
+  end if;
   new.updated_at := now();
   return new;
 end;
 $$;
+
+-- Prepara cada sugerencia antes de guardarla: el servidor decide quién la
+-- envía, su estado y su fecha (la página no puede falsearlos) y frena el
+-- spam: máximo 3 mensajes por correo cada 10 minutos y 20 por minuto en total.
+create or replace function public.prepare_feedback()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.user_id    := auth.uid();
+  new.status     := 'nuevo';
+  new.created_at := now();
+  new.email      := lower(trim(new.email));
+  new.name       := trim(new.name);
+  new.message    := trim(new.message);
+
+  if (select count(*) from public.feedback
+      where email = new.email and created_at > now() - interval '10 minutes') >= 3
+     or (select count(*) from public.feedback
+         where created_at > now() - interval '1 minute') >= 20 then
+    raise exception 'demasiados_mensajes' using errcode = 'P0001';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists prepare_feedback on public.feedback;
+create trigger prepare_feedback
+  before insert on public.feedback
+  for each row execute function public.prepare_feedback();
 
 drop trigger if exists protect_profile on public.profiles;
 create trigger protect_profile
@@ -199,6 +270,7 @@ alter table public.weight_records enable row level security;
 alter table public.activities     enable row level security;
 alter table public.login_events   enable row level security;
 alter table public.admin_emails   enable row level security;  -- sin políticas: inaccesible desde la app
+alter table public.feedback       enable row level security;
 
 -- ---------- profiles ----------
 -- (No hay política de INSERT: el perfil lo crea el trigger handle_new_user.)
@@ -262,6 +334,30 @@ create policy "accesos: ver propios o admin" on public.login_events
   for select to authenticated
   using (user_id = (select auth.uid()) or public.is_admin());
 
+-- ---------- feedback ----------
+-- Enviar: cualquiera, pero solo a su nombre (el trigger fija user_id).
+drop policy if exists "sugerencias: enviar" on public.feedback;
+create policy "sugerencias: enviar" on public.feedback
+  for insert to anon, authenticated
+  with check (user_id is not distinct from (select auth.uid()));
+
+-- Leer, marcar y borrar: solo el administrador.
+drop policy if exists "sugerencias: ver admin" on public.feedback;
+create policy "sugerencias: ver admin" on public.feedback
+  for select to authenticated
+  using (public.is_admin());
+
+drop policy if exists "sugerencias: actualizar admin" on public.feedback;
+create policy "sugerencias: actualizar admin" on public.feedback
+  for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "sugerencias: borrar admin" on public.feedback;
+create policy "sugerencias: borrar admin" on public.feedback
+  for delete to authenticated
+  using (public.is_admin());
+
 
 -- =====================================================================
 -- 4. MÉTRICAS PARA EL PANEL DE ADMINISTRADOR
@@ -310,7 +406,9 @@ begin
                                   select sum(minutes) as total
                                   from activities
                                   where date > current_date - 7
-                                  group by user_id) t)
+                                  group by user_id) t),
+    'sugerencias_nuevas',      (select count(*) from feedback where status = 'nuevo'),
+    'sugerencias_total',       (select count(*) from feedback)
   ) into result;
 
   return result;
@@ -421,6 +519,7 @@ revoke execute on function public.admin_list_users()          from public, anon;
 revoke execute on function public.handle_new_user()           from public, anon, authenticated;
 revoke execute on function public.protect_profile()           from public, anon, authenticated;
 revoke execute on function public.promote_admin_email()       from public, anon, authenticated;
+revoke execute on function public.prepare_feedback()          from public, anon, authenticated;
 revoke all on table public.admin_emails from anon, authenticated;
 
 grant execute on function public.is_admin()                   to authenticated;
@@ -437,6 +536,13 @@ grant select, insert, update, delete on public.weight_records to authenticated;
 grant select, insert, delete         on public.activities     to authenticated;
 grant select, insert                 on public.login_events   to authenticated;
 grant select                         on public.latest_weights to authenticated;
+
+-- Sugerencias: enviar solo estas columnas (con o sin sesión); el admin las
+-- lee, cambia su estado y las borra. El resto lo pone el trigger.
+revoke all on table public.feedback from anon, authenticated;
+grant insert (name, email, kind, rating, message) on public.feedback to anon, authenticated;
+grant select, delete, update (status)             on public.feedback to authenticated;
+
 
 
 -- =====================================================================
