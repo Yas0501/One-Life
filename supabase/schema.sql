@@ -13,7 +13,7 @@
 --   3. Seguridad por fila (RLS): cada usuario ve lo suyo, el admin todo
 --   4. Métricas para el panel de administrador
 --   5. Permisos
---   6. Convertir tu cuenta en administrador (al final, comentado)
+--   6. Cuenta de administrador predeterminada (al final)
 -- =====================================================================
 
 
@@ -73,6 +73,15 @@ create table if not exists public.login_events (
   created_at timestamptz not null default now()
 );
 
+-- Correos de administrador predeterminados: quien se registre con uno de
+-- estos correos recibe el rol 'admin' automáticamente (y si ya existía,
+-- se le asciende al agregarlo). RLS activado y sin políticas: la app no
+-- puede leerla ni modificarla; solo se gestiona desde el SQL Editor.
+create table if not exists public.admin_emails (
+  email      text primary key check (email = lower(email)),
+  created_at timestamptz not null default now()
+);
+
 -- Índices: aceleran las consultas por usuario y fecha.
 create index if not exists weight_records_user_date_idx on public.weight_records (user_id, date desc);
 create index if not exists activities_user_date_idx     on public.activities (user_id, date desc);
@@ -111,16 +120,40 @@ set search_path = public
 as $$
 declare
   v_name text := trim(coalesce(new.raw_user_meta_data ->> 'name', ''));
+  v_role text := case
+    when exists (select 1 from public.admin_emails where email = lower(new.email)) then 'admin'
+    else 'user'
+  end;
 begin
   if char_length(v_name) < 2 then
     v_name := 'Usuario';
   end if;
-  insert into public.profiles (id, name)
-  values (new.id, left(v_name, 40))
+  insert into public.profiles (id, name, role)
+  values (new.id, left(v_name, 40), v_role)
   on conflict (id) do nothing;
   return new;
 end;
 $$;
+
+-- Al agregar un correo a admin_emails, si esa cuenta ya existe se asciende.
+create or replace function public.promote_admin_email()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.profiles
+  set role = 'admin'
+  where id in (select id from auth.users where lower(email) = new.email);
+  return new;
+end;
+$$;
+
+drop trigger if exists on_admin_email_added on public.admin_emails;
+create trigger on_admin_email_added
+  after insert on public.admin_emails
+  for each row execute function public.promote_admin_email();
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -165,6 +198,7 @@ alter table public.profiles       enable row level security;
 alter table public.weight_records enable row level security;
 alter table public.activities     enable row level security;
 alter table public.login_events   enable row level security;
+alter table public.admin_emails   enable row level security;  -- sin políticas: inaccesible desde la app
 
 -- ---------- profiles ----------
 -- (No hay política de INSERT: el perfil lo crea el trigger handle_new_user.)
@@ -386,6 +420,8 @@ revoke execute on function public.admin_logins_per_day(int)   from public, anon;
 revoke execute on function public.admin_list_users()          from public, anon;
 revoke execute on function public.handle_new_user()           from public, anon, authenticated;
 revoke execute on function public.protect_profile()           from public, anon, authenticated;
+revoke execute on function public.promote_admin_email()       from public, anon, authenticated;
+revoke all on table public.admin_emails from anon, authenticated;
 
 grant execute on function public.is_admin()                   to authenticated;
 grant execute on function public.admin_metrics()              to authenticated;
@@ -393,14 +429,23 @@ grant execute on function public.admin_bmi_distribution()     to authenticated;
 grant execute on function public.admin_logins_per_day(int)    to authenticated;
 grant execute on function public.admin_list_users()           to authenticated;
 
-grant select on public.latest_weights to authenticated;
+-- Tablas: solo usuarios con sesión (RLS decide qué filas). Sin sesión, nada.
+grant usage on schema public to anon, authenticated;
+revoke all on table public.profiles, public.weight_records, public.activities, public.login_events, public.latest_weights from anon;
+grant select, update                 on public.profiles       to authenticated;
+grant select, insert, update, delete on public.weight_records to authenticated;
+grant select, insert, delete         on public.activities     to authenticated;
+grant select, insert                 on public.login_events   to authenticated;
+grant select                         on public.latest_weights to authenticated;
 
 
 -- =====================================================================
--- 6. CONVERTIR TU CUENTA EN ADMINISTRADOR
---    1) Regístrate primero en la app con tu correo.
---    2) Cambia el correo de abajo, quita los dos guiones "--" del
---       principio de la línea y ejecuta SOLO esa línea.
+-- 6. CUENTA DE ADMINISTRADOR PREDETERMINADA
+--    Agrega tu correo (en minúsculas) a admin_emails. Después:
+--      - si aún no tienes cuenta: regístrate en la app con ese correo y
+--        entrarás directamente como administrador;
+--      - si ya tenías cuenta: se te asciende al instante.
+--    No se guarda ninguna contraseña aquí: la eliges tú al registrarte.
 -- =====================================================================
 
--- update public.profiles set role = 'admin' where id = (select id from auth.users where email = 'TU_CORREO@ejemplo.com');
+-- insert into public.admin_emails (email) values ('tu_correo@ejemplo.com') on conflict do nothing;

@@ -1,0 +1,18 @@
+# Configuración local del editor / de Claude
+.claude/
+.vscode/
+.idea/
+
+# Dependencias y archivos temporales
+node_modules/
+supabase/.temp/
+supabase/.branches/
+
+# Secretos: NUNCA subir claves service_role / secret
+.env
+.env.*
+*.local
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

@@ -18,7 +18,15 @@
 
   <div class="banner" id="storage-warning" role="alert" hidden>
     <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-    Tu navegador bloquea el almacenamiento local. Podrás navegar, pero tu cuenta y tus datos no se guardarán.
+    Tu navegador bloquea el almacenamiento local. Podrás usar la app, pero no recordaremos tu sesión.
+  </div>
+  <div class="banner" id="config-warning" role="alert" hidden>
+    <i class="fa-solid fa-plug-circle-xmark" aria-hidden="true"></i>
+    La app no está conectada a la base de datos: configura tu proyecto de Supabase en js/config.js.
+  </div>
+  <div class="boot" id="boot" aria-live="polite">
+    <span class="wordmark__mark" aria-hidden="true"></span>
+    <span class="sr-only">Cargando One Life…</span>
   </div>
 
   <!-- ============================================================
@@ -203,7 +211,7 @@
             </details>
             <details>
               <summary>¿Dónde se guardan mis datos?</summary>
-              <p>En esta versión, todo se guarda en el almacenamiento local de tu navegador. Tu contraseña nunca se guarda en texto plano: se almacena cifrada con un hash.</p>
+              <p>En una base de datos segura (Supabase). Cada persona solo puede ver sus propios datos y tu contraseña nunca se guarda en texto plano. Puedes eliminar tu cuenta y todos tus datos cuando quieras.</p>
             </details>
             <details>
               <summary>¿Sirve para niños y adolescentes?</summary>
@@ -336,6 +344,7 @@
         <a href="#/app/progreso" data-nav="progreso"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Progreso</a>
         <a href="#/app/informacion" data-nav="informacion"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Información</a>
         <a href="#/app/perfil" data-nav="perfil"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Perfil y ajustes</a>
+        <a href="#/app/admin" data-nav="admin" id="nav-admin" class="sidenav__admin" hidden><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Administración</a>
       </nav>
       <div class="sidebar__user">
         <span class="avatar" data-bind="initials"></span>
@@ -800,7 +809,11 @@
                 <form class="card form" id="password-form" novalidate>
                   <h2 class="h-sm">Cambiar contraseña</h2>
                   <div class="form-alert" role="alert" hidden></div>
-                  <div class="field">
+                  <p class="notice notice--plain" id="pw-recovery-note" hidden>
+                    <i class="fa-solid fa-key" aria-hidden="true"></i>
+                    <span>Abriste el enlace de recuperación. Escribe tu nueva contraseña; no necesitas la anterior.</span>
+                  </p>
+                  <div class="field" id="pw-current-field">
                     <label for="pw-current">Contraseña actual</label>
                     <input id="pw-current" name="current" type="password" autocomplete="current-password" maxlength="64" aria-describedby="pw-current-error">
                     <span class="field__error" id="pw-current-error"></span>
@@ -832,7 +845,7 @@
 
                 <article class="card card--danger">
                   <h2 class="h-sm">Zona de riesgo</h2>
-                  <p class="muted">Eliminar tu cuenta borra tu perfil, tu historial de peso y tus actividades de este dispositivo. No se puede deshacer.</p>
+                  <p class="muted">Eliminar tu cuenta borra tu perfil, tu historial de peso y tus actividades. No se puede deshacer.</p>
                   <button type="button" class="btn btn--danger" id="delete-account"><i class="fa-solid fa-trash" aria-hidden="true"></i> Eliminar cuenta</button>
                 </article>
               </div>
@@ -844,6 +857,70 @@
               <p class="quote quote--sm">“Una mejor versión de ti, cada día.”</p>
             </aside>
           </div>
+        </section>
+
+        <!-- ---------- ADMINISTRACIÓN (solo administradores) ---------- -->
+        <section class="view" data-view="admin" hidden>
+          <div class="toolbar toolbar--center">
+            <p class="lead">Métricas de todas las personas que usan One Life.</p>
+            <button type="button" class="btn btn--ghost btn--sm" id="admin-refresh" data-busy="Actualizando…">
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i> Actualizar
+            </button>
+          </div>
+          <div class="form-alert" role="alert" id="admin-error" hidden></div>
+
+          <div class="tiles" id="admin-tiles"></div>
+
+          <div class="grid-2">
+            <article class="card">
+              <div class="card__head">
+                <div>
+                  <h2 class="h-sm">Inicios de sesión</h2>
+                  <p class="caption muted" id="admin-logins-total"></p>
+                </div>
+                <div class="tabs tabs--pills tabs--compact" role="tablist" aria-label="Periodo de inicios de sesión" id="admin-range">
+                  <button class="tab" role="tab" aria-selected="false" data-days="7">7 días</button>
+                  <button class="tab is-active" role="tab" aria-selected="true" data-days="30">30 días</button>
+                  <button class="tab" role="tab" aria-selected="false" data-days="90">90 días</button>
+                </div>
+              </div>
+              <div class="chart" id="admin-logins-chart"></div>
+            </article>
+            <article class="card">
+              <h2 class="h-sm">Personas por categoría de IMC</h2>
+              <ul class="dist" id="admin-dist"></ul>
+              <p class="caption muted">Según el último peso registrado de cada persona.</p>
+            </article>
+          </div>
+
+          <article class="card">
+            <div class="card__head card__head--wrap">
+              <div>
+                <h2 class="h-sm">Usuarios</h2>
+                <p class="caption muted" id="admin-user-count"></p>
+              </div>
+              <div class="field field--search">
+                <label for="admin-search" class="sr-only">Buscar usuario</label>
+                <input id="admin-search" type="search" placeholder="Buscar por nombre o correo" maxlength="80" autocomplete="off">
+              </div>
+            </div>
+            <div class="table-wrap table-wrap--tall">
+              <table class="data-table data-table--admin">
+                <thead>
+                  <tr>
+                    <th>Nombre</th><th>Correo</th><th>Rol</th><th>Alta</th><th>Último acceso</th><th>Accesos</th><th>IMC</th>
+                    <th><span class="sr-only">Acciones</span></th>
+                  </tr>
+                </thead>
+                <tbody id="admin-users"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <p class="notice notice--plain">
+            <i class="fa-solid fa-user-lock" aria-hidden="true"></i>
+            <span>El peso y el IMC son datos de salud. Úsalos de forma agregada y solo con el consentimiento de cada persona.</span>
+          </p>
         </section>
       </main>
     </div>
@@ -868,6 +945,10 @@
   <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
   <button class="to-top" id="to-top" aria-label="Volver arriba" hidden><i class="fa-solid fa-chevron-up" aria-hidden="true"></i></button>
 
+  <!-- Supabase: cliente oficial, tus datos de conexión y la capa de datos de One Life -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

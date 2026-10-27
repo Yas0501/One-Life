@@ -14,7 +14,7 @@
 //   await supabase.functions.invoke('delete-user', { body: { user_id } })
 // =====================================================================
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
