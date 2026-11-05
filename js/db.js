@@ -110,6 +110,18 @@
   /* ------------------------------------------------------------------
      API pública
      ------------------------------------------------------------------ */
+  /** Llama a una función del servidor. Si responde con un error, su mensaje viene en el cuerpo. */
+  async function invokeFunction(name, body, fallback) {
+    const { data, error } = await client.functions.invoke(name, { body });
+    if (error) {
+      let message = '';
+      try { message = (await error.context.json()).error; } catch { /* sin cuerpo JSON */ }
+      if (message) throw new Error(message);
+      fail(error, fallback);
+    }
+    return data;
+  }
+
   window.db = {
     ready: true,
     client, // acceso directo por si necesitas algo que no esté aquí
@@ -191,14 +203,7 @@
 
     /** Borra la cuenta propia (o, siendo admin, la de otra persona). */
     async deleteAccount(userId) {
-      const { data, error } = await client.functions.invoke('delete-user', { body: userId ? { user_id: userId } : {} });
-      if (error) {
-        // Si la función respondió con un error, su mensaje viene en el cuerpo de la respuesta.
-        let message = '';
-        try { message = (await error.context.json()).error; } catch { /* sin cuerpo JSON */ }
-        if (message) throw new Error(message);
-        fail(error, 'No se pudo eliminar la cuenta.');
-      }
+      const data = await invokeFunction('delete-user', userId ? { user_id: userId } : {}, 'No se pudo eliminar la cuenta.');
       if (!userId) await client.auth.signOut();
       return data;
     },
@@ -296,10 +301,20 @@
       /** [{ dia, inicios, usuarios }] */
       loginsPerDay: (dias = 30) => run(client.rpc('admin_logins_per_day', { dias })),
 
-      /** [{ id, name, email, role, created_at, last_sign_in_at, weight_kg, bmi, logins }] */
+      /** [{ id, name, email, role, created_at, last_sign_in_at, email_confirmed_at, age, sex, height_cm, weight_kg, bmi, weight_date, logins }] */
       listUsers: () => run(client.rpc('admin_list_users')),
 
       deleteUser: (userId) => window.db.deleteAccount(userId),
+
+      /** Crea una cuenta desde el panel (función del servidor; solo administradores). */
+      createUser: ({ name, email, password }) => invokeFunction('admin-create-user', { name, email, password, consent_confirmed: true }, 'No se pudo crear la cuenta.'),
+
+      /** Historial de peso de una persona: [{ date, weight_kg, bmi }] */
+      userWeights: (userId) => run(client
+        .from('weight_records')
+        .select('date, weight_kg, bmi')
+        .eq('user_id', userId)
+        .order('date', { ascending: true })),
 
       async setRole(userId, role) {
         await run(client.from('profiles').update({ role }).eq('id', userId));
@@ -311,6 +326,13 @@
         .select('*')
         .order('created_at', { ascending: false })
         .limit(limit)),
+
+      /** Cuántos mensajes siguen sin leer. */
+      async newFeedbackCount() {
+        const { count, error } = await client.from('feedback').select('id', { count: 'exact', head: true }).eq('status', 'nuevo');
+        if (error) fail(error, 'No se pudieron contar las sugerencias.');
+        return count || 0;
+      },
 
       async setFeedbackStatus(id, status) {
         await run(client.from('feedback').update({ status }).eq('id', id));

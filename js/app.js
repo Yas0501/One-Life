@@ -576,6 +576,10 @@
     state.user = { ...me, history, activities, previousLogin: logins[1] || null };
     state.isAdmin = isAdmin;
     $('#nav-admin').hidden = !isAdmin;
+    // El administrador recibe las sugerencias: su enlace lleva a la bandeja, no al formulario de envío
+    $('#nav-feedback').setAttribute('href', isAdmin ? '#/app/admin?tab=sugerencias' : '#/app/sugerencias');
+    $('#nav-feedback-label').textContent = isAdmin ? 'Sugerencias recibidas' : 'Sugerencias';
+    if (isAdmin) watchFeedback();
   }
 
   function clearLocalState() {
@@ -583,6 +587,10 @@
     state.isAdmin = false;
     state.recovery = false;
     $('#nav-admin').hidden = true;
+    $('#nav-feedback').setAttribute('href', '#/app/sugerencias');
+    $('#nav-feedback-label').textContent = 'Sugerencias';
+    stopFeedbackWatch();
+    setFeedbackBadge(0);
   }
 
   /** Marca la sesión como activa en este navegador (para "Recordarme" e inactividad). */
@@ -687,6 +695,10 @@
       if (view === 'admin' && !state.isAdmin) {
         toast('Esa sección es solo para administradores.', 'error');
         location.replace('#/app/resumen');
+        return;
+      }
+      if (view === 'sugerencias' && state.isAdmin) {
+        location.replace('#/app/admin?tab=sugerencias');
         return;
       }
       showApp(view, params);
@@ -1101,7 +1113,7 @@
     host.innerHTML = `${svg}<line class="grid-line" x1="${pad.l}" x2="${SVG_W - pad.r}" y1="${H - pad.b}" y2="${H - pad.b}"/></svg>`;
   }
 
-  function lineChart(host, points, { unit = '', band = null, goal = null, height = 240, label = '', decimals = 1 } = {}) {
+  function lineChart(host, points, { unit = '', band = null, goal = null, height = 240, label = '', decimals = 1, width = SVG_W } = {}) {
     const H = height, pad = { t: 20, r: 20, b: 30, l: 44 };
     const values = points.map((p) => p.value);
     const extra = [...(band || []), ...(goal ? [goal] : [])];
@@ -1112,35 +1124,35 @@
     if (decimals === 0) min = Math.max(0, min);
     const t0 = parseISO(points[0].date).getTime();
     const t1 = parseISO(points.at(-1).date).getTime();
-    const x = (iso) => (t1 === t0 ? (SVG_W + pad.l - pad.r) / 2 : pad.l + (SVG_W - pad.l - pad.r) * ((parseISO(iso).getTime() - t0) / (t1 - t0)));
+    const x = (iso) => (t1 === t0 ? (width + pad.l - pad.r) / 2 : pad.l + (width - pad.l - pad.r) * ((parseISO(iso).getTime() - t0) / (t1 - t0)));
     const y = (v) => pad.t + (H - pad.t - pad.b) * (1 - (v - min) / (max - min));
 
-    let svg = `<svg viewBox="0 0 ${SVG_W} ${H}" role="img" aria-label="${escapeHTML(label)}">`;
+    let svg = `<svg viewBox="0 0 ${width} ${H}" role="img" aria-label="${escapeHTML(label)}">`;
     for (let i = 0; i <= 4; i++) {
       const v = min + ((max - min) * i) / 4;
-      svg += `<line class="grid-line" x1="${pad.l}" x2="${SVG_W - pad.r}" y1="${y(v)}" y2="${y(v)}"/>`;
+      svg += `<line class="grid-line" x1="${pad.l}" x2="${width - pad.r}" y1="${y(v)}" y2="${y(v)}"/>`;
       svg += `<text class="axis-label" x="${pad.l - 8}" y="${y(v) + 4}" text-anchor="end">${fmt(v, decimals === 0 || max - min >= 10 ? 0 : 1)}</text>`;
     }
     if (band) {
       const top = y(Math.min(band[1], max)), bot = y(Math.max(band[0], min));
       if (bot > top) {
-        svg += `<rect class="band" x="${pad.l}" y="${top}" width="${SVG_W - pad.l - pad.r}" height="${bot - top}"/>`;
-        svg += `<text class="band-label" x="${SVG_W - pad.r - 6}" y="${top + 14}" text-anchor="end">Rango saludable</text>`;
+        svg += `<rect class="band" x="${pad.l}" y="${top}" width="${width - pad.l - pad.r}" height="${bot - top}"/>`;
+        svg += `<text class="band-label" x="${width - pad.r - 6}" y="${top + 14}" text-anchor="end">Rango saludable</text>`;
       }
     }
     if (goal) {
-      svg += `<line class="goal-line" x1="${pad.l}" x2="${SVG_W - pad.r}" y1="${y(goal)}" y2="${y(goal)}"/>`;
-      svg += `<text class="band-label" x="${SVG_W - pad.r - 6}" y="${y(goal) - 6}" text-anchor="end">Objetivo ${fmt(goal)} ${unit}</text>`;
+      svg += `<line class="goal-line" x1="${pad.l}" x2="${width - pad.r}" y1="${y(goal)}" y2="${y(goal)}"/>`;
+      svg += `<text class="band-label" x="${width - pad.r - 6}" y="${y(goal) - 6}" text-anchor="end">Objetivo ${fmt(goal)} ${unit}</text>`;
     }
     const d = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.date).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
-    svg += `<path class="line" d="${d}"/>`;
+    svg += `<path class="line" pathLength="2000" d="${d}"/>`; // misma longitud que el trazo animado en CSS
     points.forEach((p, i) => {
       const last = i === points.length - 1;
       svg += `<circle class="dot${last ? ' dot--last' : ''}" cx="${x(p.date)}" cy="${y(p.value)}" r="${last ? 5 : 3.5}"><title>${fmtDate(p.date, { day: 'numeric', month: 'long', year: 'numeric' })}: ${fmt(p.value, decimals)} ${unit}</title></circle>`;
     });
     const lp = points.at(-1);
     const lx = x(lp.date);
-    svg += `<text class="value-label" x="${lx}" y="${y(lp.value) - 12}" text-anchor="${lx > SVG_W - 60 ? 'end' : 'middle'}">${fmt(lp.value, decimals)}</text>`;
+    svg += `<text class="value-label" x="${lx}" y="${y(lp.value) - 12}" text-anchor="${lx > width - 60 ? 'end' : 'middle'}">${fmt(lp.value, decimals)}</text>`;
     // Etiquetas del eje X: primera, media y última
     const ticks = points.length > 2 ? [points[0], points[Math.floor(points.length / 2)], lp] : points;
     [...new Set(ticks)].forEach((p, i, arr) => {
@@ -2064,9 +2076,81 @@
   };
 
   /* ---------- Administración ---------- */
-  const adminState = { users: [], range: 30, query: '', feedback: [], fbStatus: 'todas' };
+  const adminState = { users: [], range: 30, query: '', feedback: [], fbStatus: 'todas', tab: 'resumen', stat: 'weight_kg' };
 
-  RENDER.admin = () => { loadAdmin(); };
+  RENDER.admin = (params) => {
+    showAdminTab(params?.get('tab') || 'resumen');
+    loadAdmin();
+  };
+
+  function showAdminTab(tab) {
+    const btn = $(`[data-admin-tab="${tab}"]`) || $('[data-admin-tab="resumen"]');
+    adminState.tab = btn.dataset.adminTab;
+    selectTab($('#admin-tabs'), btn);
+    $$('[data-admin-panel]').forEach((p) => { p.hidden = p.dataset.adminPanel !== adminState.tab; });
+    renderAdminCharts();
+  }
+
+  /* Las gráficas se dibujan al ancho real: solo se puede medir con su pestaña visible */
+  function renderAdminCharts() {
+    if (adminState.tab === 'resumen' && adminState.logins) renderAdminLogins(adminState.logins);
+    if (adminState.tab === 'estadisticas' && adminState.users.length) renderAdminStats();
+  }
+
+  let adminResizeTimer = 0;
+  let adminLastWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === adminLastWidth) return; // en celular la barra del navegador también dispara "resize"
+    adminLastWidth = window.innerWidth;
+    clearTimeout(adminResizeTimer);
+    adminResizeTimer = setTimeout(() => {
+      if (!$('[data-view="admin"]').hidden) renderAdminCharts();
+    }, 150);
+  });
+
+  /* Aviso de sugerencias nuevas: menú lateral, pestaña y resumen */
+  const FEEDBACK_CHECK_MS = 60 * 1000;
+  let feedbackTimer = 0;
+  let feedbackCount = null;
+
+  function setFeedbackBadge(count) {
+    feedbackCount = count;
+    const label = count > 99 ? '99+' : String(count);
+    ['#nav-feedback-count', '#admin-tab-feedback-count'].forEach((sel) => {
+      const el = $(sel);
+      el.hidden = !count;
+      el.textContent = label;
+      el.setAttribute('aria-label', `${count} sin leer`);
+    });
+    $('#admin-fb-notice').hidden = !count;
+    $('#admin-fb-notice-text').textContent = count === 1 ? 'Tienes 1 sugerencia nueva por leer.' : `Tienes ${count} sugerencias nuevas por leer.`;
+  }
+
+  async function checkFeedback() {
+    if (document.hidden) return;
+    try {
+      const count = await db.admin.newFeedbackCount();
+      const arrived = feedbackCount !== null && count > feedbackCount;
+      setFeedbackBadge(count);
+      if (!arrived) return;
+      toast('Llegó una sugerencia nueva.', 'info');
+      if (!$('[data-view="admin"]').hidden) {
+        adminState.feedback = await db.admin.listFeedback();
+        renderAdminFeedback();
+      }
+    } catch { /* se reintenta en la siguiente comprobación */ }
+  }
+
+  function watchFeedback() {
+    stopFeedbackWatch();
+    checkFeedback();
+    feedbackTimer = setInterval(checkFeedback, FEEDBACK_CHECK_MS);
+  }
+  function stopFeedbackWatch() {
+    clearInterval(feedbackTimer);
+    feedbackTimer = 0;
+    feedbackCount = null;
+  }
 
   async function loadAdmin() {
     const errorBox = $('#admin-error');
@@ -2085,6 +2169,7 @@
       renderAdminLogins(logins);
       adminState.users = users;
       renderAdminUsers();
+      renderAdminCharts();
       adminState.feedback = feedback;
       renderAdminFeedback();
     } catch (err) {
@@ -2134,13 +2219,15 @@
   }
 
   function renderAdminLogins(rows) {
+    adminState.logins = rows;
     const host = $('#admin-logins-chart');
+    if (!host.clientWidth) return; // pestaña oculta: se dibuja al mostrarla
     const points = rows.map((r) => ({ date: String(r.dia).slice(0, 10), value: Number(r.inicios) }));
     if (!points.some((p) => p.value)) {
       emptyState(host, 'fa-right-to-bracket', 'No hubo inicios de sesión en este periodo.');
       return;
     }
-    lineChart(host, points, { label: 'Inicios de sesión por día', decimals: 0, height: 240 });
+    lineChart(host, points, { label: 'Inicios de sesión por día', decimals: 0, height: 240, width: host.clientWidth });
     const total = points.reduce((s, p) => s + p.value, 0);
     $('#admin-logins-total').textContent = `${fmtInt(total)} en ${points.length} días`;
   }
@@ -2154,15 +2241,17 @@
       const isMe = u.id === me.id;
       const isAdmin = u.role === 'admin';
       const bmi = u.bmi === null ? null : Number(u.bmi);
+      const status = accountStatus(u);
       return `<tr>
-        <td><strong>${escapeHTML(u.name)}</strong>${isMe ? ' <span class="badge badge--sm">Tú</span>' : ''}</td>
-        <td>${escapeHTML(u.email)}</td>
-        <td><span class="badge badge--sm${isAdmin ? ' badge--accent' : ''}">${isAdmin ? 'Admin' : 'Usuario'}</span></td>
-        <td>${fmtStamp(u.created_at)}</td>
-        <td>${u.last_sign_in_at ? fmtDateTime(u.last_sign_in_at) : 'Nunca'}</td>
-        <td>${fmtInt(Number(u.logins))}</td>
-        <td>${bmi ? `${fmt(bmi)} <span class="muted">· ${bmiCategory(bmi).label}</span>` : '—'}</td>
+        <td class="cell-name"><strong>${escapeHTML(u.name)}</strong>${isMe ? ' <span class="badge badge--sm">Tú</span>' : ''}</td>
+        <td class="cell-email">${escapeHTML(u.email)}</td>
+        <td data-label="Estado"><span class="badge badge--sm ${status.cls}">${status.label}</span></td>
+        <td data-label="Rol"><span class="badge badge--sm${isAdmin ? ' badge--accent' : ''}">${isAdmin ? 'Admin' : 'Usuario'}</span></td>
+        <td data-label="Peso">${u.weight_kg === null ? '—' : `${fmt(Number(u.weight_kg))} kg`}</td>
+        <td data-label="IMC">${bmi ? `${fmt(bmi)} <span class="muted">· ${bmiCategory(bmi).label}</span>` : '—'}</td>
+        <td data-label="Último acceso">${u.last_sign_in_at ? fmtDateTime(u.last_sign_in_at) : 'Nunca'}</td>
         <td class="row-actions">
+          <button class="icon-btn" data-admin-view="${u.id}" title="Ver ficha" aria-label="Ver la ficha de ${escapeHTML(u.name)}"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
           <button class="icon-btn" data-admin-role="${u.id}" ${isMe ? 'disabled title="No puedes cambiar tu propio rol"' : ''}
             aria-label="${isAdmin ? 'Quitar rol de administrador a' : 'Hacer administrador a'} ${escapeHTML(u.name)}"
             title="${isAdmin ? 'Quitar rol de administrador' : 'Hacer administrador'}">
@@ -2171,7 +2260,7 @@
             aria-label="Eliminar la cuenta de ${escapeHTML(u.name)}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
         </td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" class="muted">Ningún usuario coincide con la búsqueda.</td></tr>';
+    }).join('') : '<tr class="row-empty"><td colspan="8" class="muted">Ningún usuario coincide con la búsqueda.</td></tr>';
   }
 
   $('#admin-search').addEventListener('input', (e) => {
@@ -2198,6 +2287,8 @@
   $('#admin-users').addEventListener('click', async (e) => {
     const delBtn = e.target.closest('[data-admin-delete]');
     const roleBtn = e.target.closest('[data-admin-role]');
+    const viewBtn = e.target.closest('[data-admin-view]');
+    if (viewBtn) openUserDetail(viewBtn.dataset.adminView);
     if (delBtn) {
       const user = adminState.users.find((u) => u.id === delBtn.dataset.adminDelete);
       if (!user) return;
@@ -2241,12 +2332,281 @@
     }
   });
 
+  /* Pestañas del panel */
+  $('#admin-tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-admin-tab]');
+    if (!btn) return;
+    showAdminTab(btn.dataset.adminTab);
+    history.replaceState(null, '', `#/app/admin?tab=${adminState.tab}`);
+  });
+
+  /* Estado de la cuenta */
+  function accountStatus(u) {
+    if (!u.email_confirmed_at) return { label: 'Sin confirmar', cls: 'badge--warn' };
+    if (!u.last_sign_in_at) return { label: 'Nunca entró', cls: 'badge--plain' };
+    const days = (Date.now() - new Date(u.last_sign_in_at).getTime()) / 86400000;
+    return days <= 30 ? { label: 'Activo', cls: 'badge--accent' } : { label: 'Inactivo', cls: 'badge--plain' };
+  }
+
+  /* Crear cuenta */
+  const createUserDialog = $('#create-user-dialog');
+  const createUserForm = $('#create-user-form');
+
+  $('#admin-create-open').addEventListener('click', () => {
+    createUserForm.reset();
+    clearForm(createUserForm);
+    createUserDialog.showModal();
+    createUserForm.elements.name.focus();
+  });
+
+  createUserDialog.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close-dialog]')) createUserDialog.close();
+  });
+
+  createUserForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = createUserForm;
+    clearForm(f);
+    const name = f.elements.name.value.trim().replace(/\s+/g, ' ');
+    const email = f.elements.email.value.trim().toLowerCase();
+    const password = f.elements.password.value;
+    const valid = applyErrors(f, {
+      name: validate.name(name),
+      email: validate.email(email),
+      password: validate.newPassword(password, email),
+      consent: f.elements.consent.checked ? '' : 'Marca esta casilla para crear la cuenta.',
+    });
+    if (!valid) return;
+    await withBusy($('#create-user-submit'), async () => {
+      try {
+        await db.admin.createUser({ name, email, password });
+      } catch (err) {
+        if (/Ya existe/.test(err.message)) setError(f.elements.email, err.message);
+        else formAlert(f, err.message);
+        return;
+      }
+      createUserDialog.close();
+      toast(`Cuenta creada para ${name}.`, 'success');
+      await loadAdmin();
+    });
+  });
+
+  /* Ficha de una persona: estado, datos y evolución del peso */
+  const userDialog = $('#user-dialog');
+  userDialog.addEventListener('click', (e) => {
+    if (e.target === userDialog || e.target.closest('[data-close-dialog]')) userDialog.close();
+  });
+
+  const SEX_LABEL = { m: 'Hombre', f: 'Mujer', x: 'Otro' };
+
+  async function openUserDetail(id) {
+    const u = adminState.users.find((x) => x.id === id);
+    if (!u) return;
+    const status = accountStatus(u);
+    const bmi = u.bmi === null ? null : Number(u.bmi);
+    const weights = adminStatValues('weight_kg');
+    const zone = u.weight_kg !== null && weights.length ? iqrZone(Number(u.weight_kg), describeValues(weights)) : null;
+    const rows = [
+      ['Estado', `<span class="badge badge--sm ${status.cls}">${status.label}</span>`],
+      ['Rol', u.role === 'admin' ? 'Administrador' : 'Usuario'],
+      ['Alta', fmtStamp(u.created_at)],
+      ['Último acceso', u.last_sign_in_at ? fmtDateTime(u.last_sign_in_at) : 'Nunca'],
+      ['Inicios de sesión', fmtInt(Number(u.logins))],
+      ['Edad', u.age === null ? '—' : `${u.age} años`],
+      ['Sexo', SEX_LABEL[u.sex] || '—'],
+      ['Altura', u.height_cm === null ? '—' : `${fmt(Number(u.height_cm), 0)} cm`],
+      ['Último peso', u.weight_kg === null ? '—' : `${fmt(Number(u.weight_kg))} kg · ${fmtDate(String(u.weight_date).slice(0, 10), { day: 'numeric', month: 'short', year: 'numeric' })}`],
+      ['IMC', bmi ? `${fmt(bmi)} · ${bmiCategory(bmi).label}` : '—'],
+      ['Peso frente al grupo', zone ? `${zone.label}${zone.outlier ? ' (valor atípico)' : ''}` : '—'],
+    ];
+    $('#user-dialog-title').textContent = u.name;
+    $('#user-dialog-body').innerHTML = `
+      <p class="muted">${escapeHTML(u.email)}</p>
+      <dl class="user-detail__list">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      <h3 class="h-xs">Evolución del peso</h3>
+      <div class="chart" id="user-dialog-chart"><p class="caption muted">Cargando…</p></div>`;
+    userDialog.showModal();
+    const host = $('#user-dialog-chart');
+    try {
+      const records = await db.admin.userWeights(id);
+      if (!records.length) {
+        emptyState(host, 'fa-weight-scale', 'Esta persona aún no ha registrado su peso.');
+        return;
+      }
+      lineChart(host, records.map((r) => ({ date: r.date, value: Number(r.weight_kg) })), { unit: 'kg', height: 220, label: `Evolución del peso de ${u.name}`, width: host.clientWidth });
+    } catch (err) {
+      host.innerHTML = `<p class="caption muted">${escapeHTML(err.message)}</p>`;
+    }
+  }
+
+  /* Estadísticas: media aritmética y cuartiles de todas las personas registradas */
+  const STAT_INFO = {
+    weight_kg: { label: 'Peso', unit: 'kg' },
+    bmi: { label: 'IMC', unit: '' },
+  };
+  const adminStatValues = (key) => adminState.users.filter((u) => u[key] !== null).map((u) => Number(u[key]));
+
+  /** Cuantil por interpolación lineal (igual que percentile_cont de Postgres). */
+  const quantile = (sorted, q) => {
+    const pos = (sorted.length - 1) * q;
+    const lo = Math.floor(pos);
+    const hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  };
+
+  function describeValues(values) {
+    const v = [...values].sort((a, b) => a - b);
+    const q1 = quantile(v, 0.25);
+    const q3 = quantile(v, 0.75);
+    const iqr = q3 - q1;
+    const low = q1 - 1.5 * iqr;
+    const high = q3 + 1.5 * iqr;
+    const inside = v.filter((x) => x >= low && x <= high);
+    return {
+      n: v.length, mean: v.reduce((s, x) => s + x, 0) / v.length, median: quantile(v, 0.5),
+      min: v[0], max: v[v.length - 1], q1, q3, iqr, low, high,
+      whiskerLow: inside[0], whiskerHigh: inside[inside.length - 1],
+    };
+  }
+
+  const IQR_ZONES = ['Por debajo de Q1', 'Entre Q1 y la mediana', 'Entre la mediana y Q3', 'Por encima de Q3'];
+  function iqrZone(x, s) {
+    const index = x < s.q1 ? 0 : x <= s.median ? 1 : x <= s.q3 ? 2 : 3;
+    return { index, label: IQR_ZONES[index], outlier: x < s.low || x > s.high };
+  }
+
+  function renderAdminStats() {
+    const key = adminState.stat;
+    const { label, unit } = STAT_INFO[key];
+    const people = adminState.users.filter((u) => u[key] !== null);
+    const suffix = unit ? ` ${unit}` : '';
+    const val = (n) => `${fmt(n)}${suffix}`;
+    const total = adminState.users.length;
+    $('#admin-stat-title').textContent = `${label}: media y rango intercuartílico`;
+    if (!people.length) {
+      $('#admin-stat-tiles').innerHTML = '';
+      $('#admin-stat-reading').textContent = '';
+      $('#admin-stat-zones').innerHTML = '';
+      $('#admin-stat-table').innerHTML = '';
+      $('#admin-boxplot-legend').hidden = true;
+      emptyState($('#admin-boxplot'), 'fa-chart-simple', 'Aún nadie ha registrado su peso.');
+      return;
+    }
+    $('#admin-boxplot-legend').hidden = false;
+    const s = describeValues(people.map((u) => Number(u[key])));
+    const outliers = people.filter((u) => iqrZone(Number(u[key]), s).outlier).length;
+    const small = unit ? `<small>${unit}</small>` : '';
+    const tiles = [
+      { label: 'Media aritmética', value: `${fmt(s.mean)}${small}`, meta: `${fmtInt(s.n)} de ${fmtInt(total)} personas con datos` },
+      { label: 'Mediana', value: `${fmt(s.median)}${small}`, meta: 'Valor del centro' },
+      { label: 'Rango intercuartílico', value: `${fmt(s.iqr)}${small}`, meta: `Q1 ${fmt(s.q1)} a Q3 ${fmt(s.q3)}` },
+      { label: 'Valores atípicos', value: fmtInt(outliers), meta: `Fuera de ${fmt(s.low)} a ${fmt(s.high)}` },
+    ];
+    $('#admin-stat-tiles').innerHTML = tiles.map((t) => `
+      <article class="tile">
+        <span class="tile__label">${t.label}</span>
+        <span class="tile__value">${t.value}</span>
+        <span class="tile__meta">${escapeHTML(t.meta)}</span>
+      </article>`).join('');
+
+    const position = s.mean < s.q1 ? 'por debajo del rango intercuartílico'
+      : s.mean > s.q3 ? 'por encima del rango intercuartílico' : 'dentro del rango intercuartílico';
+    const gap = s.mean - s.median;
+    const skew = Math.abs(gap) < 0.05 ? 'Coincide con la mediana: los datos están equilibrados.'
+      : gap > 0 ? 'Está sobre la mediana: los valores altos la empujan hacia arriba.'
+        : 'Está bajo la mediana: los valores bajos la empujan hacia abajo.';
+    const few = s.n < 4 ? ' Con menos de 4 personas los cuartiles orientan poco.' : '';
+    $('#admin-stat-reading').textContent = `La media (${val(s.mean)}) está ${position} (${val(s.q1)} a ${val(s.q3)}). ${skew}${few}`;
+
+    boxPlot($('#admin-boxplot'), people.map((u) => ({ name: u.name, value: Number(u[key]) })), s, { label, unit });
+
+    const counts = IQR_ZONES.map(() => 0);
+    people.forEach((u) => { counts[iqrZone(Number(u[key]), s).index] += 1; });
+    const maxCount = Math.max(1, ...counts);
+    $('#admin-stat-zones').innerHTML = IQR_ZONES.map((z, i) => `<li>
+        <span class="dist__label">${z}</span>
+        <div class="dist__bar" role="img" aria-label="${z}: ${counts[i]} personas"><span style="width:${(counts[i] / maxCount) * 100}%"></span></div>
+        <span class="dist__value">${counts[i]}<small>${pct(counts[i], s.n)}</small></span>
+      </li>`).join('');
+
+    $('#admin-stat-table').innerHTML = [
+      ['Personas con datos', fmtInt(s.n)], ['Mínimo', val(s.min)], ['Q1 (cuartil 1)', val(s.q1)], ['Mediana', val(s.median)],
+      ['Media aritmética', val(s.mean)], ['Q3 (cuartil 3)', val(s.q3)], ['Máximo', val(s.max)],
+      ['Rango intercuartílico', val(s.iqr)], ['Límite inferior', val(s.low)], ['Límite superior', val(s.high)],
+    ].map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join('');
+  }
+
+  /** Diagrama de caja horizontal: caja Q1-Q3, mediana, media y un punto por persona. */
+  function boxPlot(host, points, s, { label, unit }) {
+    const W = Math.max(280, host.clientWidth || SVG_W);
+    const H = 252;
+    const pad = { l: 24, r: 24 };
+    let lo = s.min;
+    let hi = s.max;
+    if (hi - lo < 2) { lo -= 1; hi += 1; }
+    const margin = (hi - lo) * 0.06;
+    lo -= margin;
+    hi += margin;
+    const x = (v) => pad.l + (W - pad.l - pad.r) * ((v - lo) / (hi - lo));
+    const boxY = 74;
+    const boxH = 44;
+    const midY = boxY + boxH / 2;
+    const dotsY = 166;
+    const axisY = 218;
+    const suffix = unit ? ` ${unit}` : '';
+    const n1 = (v) => `${fmt(v)}${suffix}`;
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHTML(`${label}: media ${n1(s.mean)}, mediana ${n1(s.median)}, Q1 ${n1(s.q1)}, Q3 ${n1(s.q3)}, ${s.n} personas`)}">`;
+    // Marcas del eje en números redondos
+    const step = [0.5, 1, 2, 5, 10, 20, 50, 100].find((c) => (hi - lo) / c <= 6) || 100;
+    for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+      svg += `<line class="grid-line" x1="${x(v)}" x2="${x(v)}" y1="${boxY - 10}" y2="${axisY}"/>`;
+      svg += `<text class="axis-label" x="${x(v)}" y="${axisY + 18}" text-anchor="middle">${fmt(v, step < 1 ? 1 : 0)}</text>`;
+    }
+    // Bigotes
+    svg += `<line class="box-whisker" x1="${x(s.whiskerLow)}" x2="${x(s.q1)}" y1="${midY}" y2="${midY}"/>`;
+    svg += `<line class="box-whisker" x1="${x(s.q3)}" x2="${x(s.whiskerHigh)}" y1="${midY}" y2="${midY}"/>`;
+    [s.whiskerLow, s.whiskerHigh].forEach((v) => { svg += `<line class="box-whisker" x1="${x(v)}" x2="${x(v)}" y1="${midY - 8}" y2="${midY + 8}"/>`; });
+    // Caja y mediana
+    svg += `<rect class="box-iqr" x="${x(s.q1)}" y="${boxY}" width="${Math.max(2, x(s.q3) - x(s.q1))}" height="${boxH}" rx="4"><title>50 % central: ${n1(s.q1)} a ${n1(s.q3)}</title></rect>`;
+    svg += `<line class="box-median" x1="${x(s.median)}" x2="${x(s.median)}" y1="${boxY}" y2="${boxY + boxH}"><title>Mediana: ${n1(s.median)}</title></line>`;
+    // Media
+    const mx = x(s.mean);
+    svg += `<path class="box-mean" d="M${mx} ${midY - 8}L${mx + 8} ${midY}L${mx} ${midY + 8}L${mx - 8} ${midY}Z"><title>Media aritmética: ${n1(s.mean)}</title></path>`;
+    // Etiquetas de Q1, mediana y Q3: si se tocan, suben a otra fila
+    const rowEnds = [-Infinity, -Infinity, -Infinity];
+    const labelW = 86;
+    [['Q1', s.q1], ['Mediana', s.median], ['Q3', s.q3]].forEach(([name, v]) => {
+      const lx = clamp(x(v), pad.l + labelW / 2, W - pad.r - labelW / 2);
+      const row = rowEnds.findIndex((end) => lx - labelW / 2 >= end);
+      rowEnds[row] = lx + labelW / 2;
+      svg += `<text class="box-label" x="${lx}" y="${boxY - 14 - row * 16}" text-anchor="middle">${name} ${fmt(v)}</text>`;
+    });
+    svg += `<text class="box-label box-label--mean" x="${clamp(mx, pad.l + 44, W - pad.r - 44)}" y="${boxY + boxH + 18}" text-anchor="middle">Media ${fmt(s.mean)}</text>`;
+    // Un punto por persona, en cuatro alturas para que no se tapen
+    points.forEach((p, i) => {
+      const out = p.value < s.low || p.value > s.high;
+      const cy = dotsY + (i % 4) * 11;
+      svg += `<g><title>${escapeHTML(p.name)}: ${n1(p.value)}${out ? ' (atípico)' : ''}</title><circle class="box-hit" cx="${x(p.value)}" cy="${cy}" r="10"/><circle class="${out ? 'box-dot box-dot--out' : 'box-dot'}" cx="${x(p.value)}" cy="${cy}" r="4.5"/></g>`;
+    });
+    host.innerHTML = `${svg}</svg>`;
+  }
+
+  $('#admin-stat-metric').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-stat]');
+    if (!btn) return;
+    adminState.stat = btn.dataset.stat;
+    selectTab($('#admin-stat-metric'), btn);
+    renderAdminStats();
+  });
+
   const FB_STATUS_LABEL = { nuevo: 'Nueva', leido: 'Leída', resuelto: 'Resuelta' };
   const FB_KIND_LABEL = { sugerencia: 'Sugerencia', comentario: 'Comentario', problema: 'Problema', otro: 'Otro' };
 
   function renderAdminFeedback() {
     const all = adminState.feedback;
     const fresh = all.filter((f) => f.status === 'nuevo').length;
+    setFeedbackBadge(fresh);
     $('#admin-fb-count').textContent = `${fresh} ${fresh === 1 ? 'nueva' : 'nuevas'} · ${all.length} en total`;
     const list = adminState.fbStatus === 'todas' ? all : all.filter((f) => f.status === adminState.fbStatus);
     const host = $('#admin-feedback');

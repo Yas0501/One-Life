@@ -529,7 +529,7 @@
             <li>Contraseñas de 8 caracteres o más, con mayúsculas, minúsculas y números, sin números consecutivos ni repetidos.</li>
             <li>Bloqueo temporal tras varios intentos de inicio de sesión fallidos.</li>
             <li>Cierre automático de la sesión tras 30 minutos sin actividad.</li>
-            <li>El administrador solo ve métricas y datos básicos de cuenta, y no puede leer contraseñas.</li>
+            <li>El administrador puede ver tus datos de cuenta y tu historial de peso e IMC para gestionar el servicio, crear o eliminar cuentas y calcular estadísticas del grupo. No puede leer contraseñas.</li>
             <li>Límite de mensajes en el formulario de contacto para frenar el spam.</li>
           </ul>
 
@@ -566,7 +566,7 @@
         <a href="#/app/progreso" data-nav="progreso"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Progreso</a>
         <a href="#/app/informacion" data-nav="informacion"><i class="fa-solid fa-book-open" aria-hidden="true"></i> Información</a>
         <a href="#/app/perfil" data-nav="perfil"><i class="fa-solid fa-user-gear" aria-hidden="true"></i> Perfil y ajustes</a>
-        <a href="#/app/sugerencias" data-nav="sugerencias"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i> Sugerencias</a>
+        <a href="#/app/sugerencias" data-nav="sugerencias" id="nav-feedback"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i> <span id="nav-feedback-label">Sugerencias</span> <span class="count-badge" id="nav-feedback-count" hidden></span></a>
         <a href="#/app/admin" data-nav="admin" id="nav-admin" class="sidenav__admin" hidden><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Administración</a>
       </nav>
       <div class="sidebar__user">
@@ -1102,13 +1102,27 @@
         <!-- ---------- ADMINISTRACIÓN (solo administradores) ---------- -->
         <section class="view" data-view="admin" hidden>
           <div class="toolbar toolbar--center">
-            <p class="lead">Métricas de todas las personas que usan One Life.</p>
+            <p class="lead">Gestiona las cuentas y revisa los datos de todas las personas que usan One Life.</p>
             <button type="button" class="btn btn--ghost btn--sm" id="admin-refresh" data-busy="Actualizando…">
               <i class="fa-solid fa-rotate" aria-hidden="true"></i> Actualizar
             </button>
           </div>
           <div class="form-alert" role="alert" id="admin-error" hidden></div>
 
+          <div class="tabs tabs--pills tabs--compact" role="tablist" aria-label="Secciones de administración" id="admin-tabs">
+            <button class="tab is-active" role="tab" aria-selected="true" data-admin-tab="resumen"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Resumen</button>
+            <button class="tab" role="tab" aria-selected="false" data-admin-tab="usuarios"><i class="fa-solid fa-users" aria-hidden="true"></i> Usuarios</button>
+            <button class="tab" role="tab" aria-selected="false" data-admin-tab="estadisticas"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> Estadísticas</button>
+            <button class="tab" role="tab" aria-selected="false" data-admin-tab="sugerencias"><i class="fa-solid fa-comments" aria-hidden="true"></i> Sugerencias <span class="count-badge" id="admin-tab-feedback-count" hidden></span></button>
+          </div>
+
+          <!-- Resumen -->
+          <div class="admin-panel" data-admin-panel="resumen">
+          <a class="notice notice--link" id="admin-fb-notice" href="#/app/admin?tab=sugerencias" hidden>
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+            <span id="admin-fb-notice-text"></span>
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          </a>
           <div class="tiles" id="admin-tiles"></div>
 
           <div class="grid-2">
@@ -1132,31 +1146,77 @@
               <p class="caption muted">Según el último peso registrado de cada persona.</p>
             </article>
           </div>
+          </div>
 
+          <!-- Usuarios: crear, consultar estado y peso, cambiar rol, borrar -->
+          <div class="admin-panel" data-admin-panel="usuarios" hidden>
           <article class="card">
             <div class="card__head card__head--wrap">
               <div>
                 <h2 class="h-sm">Usuarios</h2>
                 <p class="caption muted" id="admin-user-count"></p>
               </div>
-              <div class="field field--search">
-                <label for="admin-search" class="sr-only">Buscar usuario</label>
-                <input id="admin-search" type="search" placeholder="Buscar por nombre o correo" maxlength="80" autocomplete="off">
+              <div class="admin-actions">
+                <div class="field field--search">
+                  <label for="admin-search" class="sr-only">Buscar usuario</label>
+                  <input id="admin-search" type="search" placeholder="Buscar por nombre o correo" maxlength="80" autocomplete="off">
+                </div>
+                <button type="button" class="btn btn--primary btn--sm" id="admin-create-open"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Crear cuenta</button>
               </div>
             </div>
             <div class="table-wrap table-wrap--tall">
               <table class="data-table data-table--admin">
                 <thead>
                   <tr>
-                    <th>Nombre</th><th>Correo</th><th>Rol</th><th>Alta</th><th>Último acceso</th><th>Accesos</th><th>IMC</th>
+                    <th>Nombre</th><th>Correo</th><th>Estado</th><th>Rol</th><th>Peso</th><th>IMC</th><th>Último acceso</th>
                     <th><span class="sr-only">Acciones</span></th>
                   </tr>
                 </thead>
                 <tbody id="admin-users"></tbody>
               </table>
             </div>
+            <p class="caption muted"><strong>Activo:</strong> entró en los últimos 30 días. <strong>Inactivo:</strong> lleva más de 30 días sin entrar. <strong>Sin confirmar:</strong> no ha confirmado su correo.</p>
           </article>
+          </div>
 
+          <!-- Estadísticas: media y cuartiles de todas las personas con peso registrado -->
+          <div class="admin-panel" data-admin-panel="estadisticas" hidden>
+            <div class="tabs tabs--pills tabs--compact" role="tablist" aria-label="Dato a analizar" id="admin-stat-metric">
+              <button class="tab is-active" role="tab" aria-selected="true" data-stat="weight_kg">Peso</button>
+              <button class="tab" role="tab" aria-selected="false" data-stat="bmi">IMC</button>
+            </div>
+            <div class="tiles" id="admin-stat-tiles"></div>
+            <article class="card">
+              <h2 class="h-sm" id="admin-stat-title">Media y rango intercuartílico</h2>
+              <p class="caption muted" id="admin-stat-reading"></p>
+              <div class="boxplot" id="admin-boxplot"></div>
+              <ul class="boxplot-legend" id="admin-boxplot-legend">
+                <li><span class="key key--box"></span>50 % central (Q1 a Q3)</li>
+                <li><span class="key key--median"></span>Mediana</li>
+                <li><span class="key key--mean"></span>Media aritmética</li>
+                <li><span class="key key--dot"></span>Una persona</li>
+                <li><span class="key key--out"></span>Valor atípico</li>
+              </ul>
+            </article>
+            <div class="grid-2">
+              <article class="card">
+                <h2 class="h-sm">Personas por tramo</h2>
+                <ul class="dist" id="admin-stat-zones"></ul>
+              </article>
+              <article class="card">
+                <h2 class="h-sm">Tabla de valores</h2>
+                <div class="table-wrap table-wrap--full">
+                  <table class="data-table">
+                    <tbody id="admin-stat-table"></tbody>
+                  </table>
+                </div>
+                <p class="caption muted">Usa el último peso de cada persona. Cuartiles por interpolación lineal; es atípico lo que queda a más de 1,5 × RIC de Q1 o de Q3.</p>
+              </article>
+            </div>
+          </div>
+
+          <!-- Sugerencias -->
+          <div class="admin-panel" data-admin-panel="sugerencias" hidden>
           <article class="card">
             <div class="card__head card__head--wrap">
               <div>
@@ -1172,10 +1232,11 @@
             </div>
             <ul class="fb-list" id="admin-feedback"></ul>
           </article>
+          </div>
 
           <p class="notice notice--plain">
             <i class="fa-solid fa-user-lock" aria-hidden="true"></i>
-            <span>El peso y el IMC son datos de salud. Úsalos de forma agregada y solo con el consentimiento de cada persona.</span>
+            <span>El peso y el IMC son datos de salud. Consúltalos solo para gestionar el servicio y nunca los compartas.</span>
           </p>
         </section>
       </main>
@@ -1201,6 +1262,50 @@
   <!-- Receta detallada -->
   <dialog class="dialog dialog--recipe" id="recipe-dialog" aria-labelledby="recipe-title">
     <div class="recipe" id="recipe-body"></div>
+  </dialog>
+
+  <!-- Administración: crear una cuenta -->
+  <dialog class="dialog" id="create-user-dialog" aria-labelledby="create-user-title">
+    <form class="dialog__inner" id="create-user-form" novalidate>
+      <h2 class="h-sm" id="create-user-title">Crear cuenta</h2>
+      <div class="form-alert" role="alert" hidden></div>
+      <div class="field">
+        <label for="cu-name">Nombre</label>
+        <input id="cu-name" name="name" autocomplete="off" maxlength="40" aria-describedby="cu-name-error">
+        <span class="field__error" id="cu-name-error"></span>
+      </div>
+      <div class="field">
+        <label for="cu-email">Correo electrónico</label>
+        <input id="cu-email" name="email" type="email" autocomplete="off" maxlength="80" aria-describedby="cu-email-error">
+        <span class="field__error" id="cu-email-error"></span>
+      </div>
+      <div class="field">
+        <label for="cu-password">Contraseña inicial</label>
+        <div class="input-group">
+          <input id="cu-password" name="password" type="password" autocomplete="new-password" maxlength="64" aria-describedby="cu-password-error">
+          <button type="button" class="input-group__btn" data-toggle-password="cu-password" aria-label="Mostrar contraseña"><i class="fa-solid fa-eye" aria-hidden="true"></i></button>
+        </div>
+        <span class="field__error" id="cu-password-error"></span>
+      </div>
+      <div class="field">
+        <label class="check"><input type="checkbox" id="cu-consent" name="consent" aria-describedby="cu-consent-error"> <span>Confirmo que esta persona aceptó los Términos y condiciones y la Política de privacidad.</span></label>
+        <span class="field__error" id="cu-consent-error"></span>
+      </div>
+      <p class="caption muted">La cuenta queda lista para entrar, sin confirmar el correo. Pide a la persona que cambie su contraseña al entrar.</p>
+      <div class="form-actions">
+        <button type="button" class="btn btn--ghost" data-close-dialog>Cancelar</button>
+        <button type="submit" class="btn btn--primary" id="create-user-submit" data-busy="Creando…">Crear cuenta</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Administración: ficha de una persona -->
+  <dialog class="dialog dialog--user" id="user-dialog" aria-labelledby="user-dialog-title">
+    <div class="legal-dialog__head">
+      <h2 class="h-sm" id="user-dialog-title"></h2>
+      <button type="button" class="icon-btn" data-close-dialog aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="user-detail" id="user-dialog-body"></div>
   </dialog>
 
   <!-- Términos / Política dentro del registro (no se pierde lo escrito) -->
