@@ -7,6 +7,7 @@ Archivos que vas a usar:
 Archivo	Para qué sirve
 supabase/schema.sql	Crea las tablas, la seguridad (usuario / admin) y las métricas. Se pega en Supabase.
 supabase/functions/delete-user/index.ts	Función del servidor para borrar cuentas de forma segura.
+supabase/functions/admin-create-user/index.ts	Función del servidor para que el administrador cree cuentas. Publícala igual que delete-user.
 js/config.js	Aquí pegas la URL y la clave pública de tu proyecto.
 js/db.js	Funciones listas para usar desde la app: db.signIn(), db.upsertRecord(), db.admin.metrics()…
 0. Qué es Supabase (en 2 minutos)
@@ -65,6 +66,7 @@ protect_profile(): impide que un usuario se ponga role = 'admin' a sí mismo edi
 
 Tabla	Ver	Crear	Editar	Borrar
 profiles	propio o admin	(automático al registrarse)	propio o admin	(solo con la función delete-user)
+meals (recetas)	cualquiera con sesión	solo admin	solo admin	solo admin
 weight_records	propio o admin	propio	propio	propio o admin
 activities	propio o admin	propio	—	propio o admin
 login_events	propio o admin	propio	—	—

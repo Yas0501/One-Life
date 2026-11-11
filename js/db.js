@@ -105,6 +105,17 @@
   };
 
   const recordFromRow = (r) => ({ id: r.id, date: r.date, weight: Number(r.weight_kg), height: Number(r.height_cm), bmi: Number(r.bmi) });
+  // Receta: columnas de la tabla "meals" ↔ formato de la app
+  const mealFromRow = (r) => ({
+    id: r.id, type: r.type, name: r.name, kcal: r.kcal, min: r.minutes, tags: r.tags || [], img: r.image,
+    macros: { p: Number(r.protein_g), c: Number(r.carbs_g), f: Number(r.fat_g) },
+    desc: r.description, ingredients: r.ingredients || [], steps: r.steps || [], tip: r.tip || '',
+  });
+  const mealToRow = (m) => ({
+    type: m.type, name: m.name, kcal: m.kcal, minutes: m.min, tags: m.tags, image: m.img,
+    protein_g: m.macros.p, carbs_g: m.macros.c, fat_g: m.macros.f,
+    description: m.desc, ingredients: m.ingredients, steps: m.steps, tip: m.tip || null,
+  });
   const activityFromRow = (a) => ({ id: a.id, date: a.date, type: a.type, minutes: a.minutes, steps: a.steps, kcal: a.kcal, created: a.created_at });
 
   /* ------------------------------------------------------------------
@@ -274,6 +285,12 @@
      * salvo el administrador. Por eso no se pide la fila de vuelta (.select()).
      * row = { name, email, kind, rating, message }
      */
+    /* ---------- Recetas del plan de alimentación ---------- */
+    async listMeals() {
+      const rows = await run(client.from('meals').select('*').order('position', { ascending: true }));
+      return rows.map(mealFromRow);
+    },
+
     async sendFeedback(row) {
       await run(client.from('feedback').insert({
         name: row.name,
@@ -326,6 +343,25 @@
         .select('*')
         .order('created_at', { ascending: false })
         .limit(limit)),
+
+      /** Crea o actualiza una receta (solo administradores, lo exige RLS). */
+      async saveMeal(meal, { isNew }) {
+        const row = mealToRow(meal);
+        const query = isNew
+          ? client.from('meals').insert({ id: meal.id, ...row })
+          : client.from('meals').update(row).eq('id', meal.id);
+        const { error } = await query;
+        if (error) {
+          if (error.code === '23505') throw new Error('Ya existe una receta con ese nombre.');
+          if (error.code === '42501') throw new Error('Solo un administrador puede editar recetas.');
+          if (error.code === '23514') throw new Error('Algún dato no es válido. Revisa los campos.');
+          fail(error, 'No se pudo guardar la receta.');
+        }
+      },
+
+      async deleteMeal(id) {
+        await run(client.from('meals').delete().eq('id', id));
+      },
 
       /** Cuántos mensajes siguen sin leer. */
       async newFeedbackCount() {

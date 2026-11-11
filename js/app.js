@@ -24,6 +24,7 @@
   const round1 = (n) => Math.round(n * 10) / 10;
   const fmt = (n, d = 1) => Number(n).toLocaleString('es', { minimumFractionDigits: d, maximumFractionDigits: d });
   const fmtInt = (n) => Math.round(n).toLocaleString('es');
+  const fmtNum = (n) => Number(n).toLocaleString('es', { maximumFractionDigits: 1 });
 
   const todayISO = () => {
     const d = new Date();
@@ -134,107 +135,32 @@
     { key: 'baile', label: 'Baile', met: 5, icon: 'fa-music' },
   ];
 
-  /* Recetas: cada una con foto (Unsplash), ingredientes y pasos para 1 porción. */
-  const MEALS = [
-    { id: 'avena-frutos-rojos', type: 'desayuno', name: 'Avena con frutos rojos y chía', kcal: 320, min: 10, tags: ['Alto en fibra'],
-      img: 'photo-1610441009633-b6ca9c6d4be2', macros: { p: 11, c: 52, f: 9 },
-      desc: 'Avena cocida, frutos rojos, semillas de chía y canela.',
-      ingredients: ['40 g de avena en hojuelas', '200 ml de leche descremada o bebida vegetal', '80 g de frutos rojos (fresas, moras, arándanos)', '1 cucharada de semillas de chía', '½ cucharadita de canela', '1 cucharadita de miel (opcional)'],
-      steps: ['Calienta la leche en una olla a fuego medio.', 'Añade la avena y la canela y cocina 4–5 minutos, removiendo, hasta que espese.', 'Sirve en un tazón y espolvorea la chía.', 'Corona con los frutos rojos y, si quieres, un hilo de miel.'],
-      tip: 'Prepárala la noche anterior en frío (overnight oats): mezcla todo y guárdala en el refrigerador.' },
-    { id: 'tostada-aguacate-huevo', type: 'desayuno', name: 'Tostada integral con aguacate y huevo', kcal: 380, min: 10, tags: ['Proteína'],
-      img: 'photo-1613769049987-b31b641f25b1', macros: { p: 16, c: 30, f: 21 },
-      desc: 'Pan integral, medio aguacate, huevo pochado y tomate.',
-      ingredients: ['2 rebanadas de pan integral', '½ aguacate maduro', '1 huevo', '4 tomates cherry', 'Jugo de ½ limón', 'Sal, pimienta y hojuelas de chile al gusto'],
-      steps: ['Tuesta el pan.', 'Machaca el aguacate con el limón, sal y pimienta.', 'Pocha el huevo 3 minutos en agua apenas hirviendo con un chorrito de vinagre.', 'Unta el aguacate en el pan, coloca el huevo encima y añade los tomates en mitades.'],
-      tip: 'Si no te gusta el huevo pochado, usa un huevo cocido en rodajas: mismas calorías.' },
-    { id: 'yogur-nueces-miel', type: 'desayuno', name: 'Yogur griego con nueces y miel', kcal: 290, min: 5, tags: ['Proteína'],
-      img: 'photo-1593999419634-455e51714dca', macros: { p: 18, c: 22, f: 14 },
-      desc: 'Yogur griego natural, nueces troceadas y un hilo de miel.',
-      ingredients: ['170 g de yogur griego natural sin azúcar', '15 g de nueces troceadas', '1 cucharadita de miel', '2 cucharadas de granola sin azúcar (opcional)', 'Fruta picada al gusto'],
-      steps: ['Sirve el yogur en un vaso o tazón.', 'Añade la fruta y la granola por capas.', 'Termina con las nueces y la miel.'],
-      tip: 'El yogur griego tiene el doble de proteína que el normal: te mantiene saciado hasta el almuerzo.' },
-    { id: 'batido-verde', type: 'desayuno', name: 'Batido verde de espinaca y plátano', kcal: 240, min: 5, tags: ['Ligero'],
-      img: 'photo-1610970881699-44a5587cabec', macros: { p: 8, c: 40, f: 6 },
-      desc: 'Espinaca, plátano, leche vegetal y linaza molida.',
-      ingredients: ['1 taza de espinaca fresca', '1 plátano congelado en rodajas', '250 ml de bebida de almendra sin azúcar', '1 cucharada de linaza molida', '½ taza de hielo'],
-      steps: ['Coloca la espinaca y la bebida vegetal en la licuadora y licúa 20 segundos.', 'Añade el plátano, la linaza y el hielo.', 'Licúa hasta que quede cremoso y sirve de inmediato.'],
-      tip: 'Congelar el plátano da textura de helado sin añadir azúcar.' },
-    { id: 'pollo-quinoa', type: 'almuerzo', name: 'Pollo a la plancha con quinoa', kcal: 520, min: 25, tags: ['Proteína', 'Bajo en grasa'],
-      img: 'photo-1666724405260-48b7a2024809', macros: { p: 45, c: 48, f: 14 },
-      desc: 'Pechuga a la plancha, quinoa y verduras salteadas.',
-      ingredients: ['150 g de pechuga de pollo', '60 g de quinoa cruda', '1 calabacita en medias lunas', '½ pimiento rojo en tiras', '1 cucharadita de aceite de oliva', 'Ajo en polvo, pimentón, sal y limón'],
-      steps: ['Enjuaga la quinoa y cuécela en 120 ml de agua 15 minutos, tapada.', 'Sazona el pollo con ajo, pimentón y sal.', 'Cocina el pollo en una sartén caliente 5–6 minutos por lado.', 'Saltea las verduras con el aceite 4 minutos.', 'Sirve la quinoa, las verduras y el pollo en rebanadas con limón.'],
-      tip: 'Cocina doble cantidad de quinoa: se conserva 4 días en el refrigerador.' },
-    { id: 'ensalada-mediterranea', type: 'almuerzo', name: 'Ensalada mediterránea con garbanzos', kcal: 430, min: 15, tags: ['Vegano', 'Alto en fibra'],
-      img: 'photo-1688807462845-a06bc0abcadb', macros: { p: 16, c: 48, f: 19 },
-      desc: 'Garbanzos, pepino, tomate, aceitunas y aceite de oliva.',
-      ingredients: ['1 taza de garbanzos cocidos', '1 pepino en cubos', '1 tomate en cubos', '¼ de cebolla morada picada', '6 aceitunas', '1 cucharada de aceite de oliva', 'Jugo de limón, orégano y sal'],
-      steps: ['Enjuaga y escurre los garbanzos.', 'Pica las verduras en cubos del mismo tamaño.', 'Mezcla el aceite, el limón, el orégano y la sal.', 'Une todo en un tazón y deja reposar 5 minutos antes de servir.'],
-      tip: 'Añade 50 g de queso feta si no eres vegano: +130 kcal y más proteína.' },
-    { id: 'salmon-camote', type: 'almuerzo', name: 'Salmón al horno con camote', kcal: 580, min: 30, tags: ['Omega 3'],
-      img: 'photo-1580476262798-bddd9f4b7369', macros: { p: 36, c: 42, f: 27 },
-      desc: 'Salmón, camote asado y espárragos con limón.',
-      ingredients: ['140 g de filete de salmón', '1 camote mediano (150 g)', '6 espárragos', '1 cucharadita de aceite de oliva', 'Limón, eneldo, sal y pimienta'],
-      steps: ['Precalienta el horno a 200 °C.', 'Corta el camote en cubos, mézclalo con la mitad del aceite y hornéalo 15 minutos.', 'Añade a la bandeja el salmón y los espárragos con el resto del aceite, sal y eneldo.', 'Hornea 12 minutos más y sirve con rodajas de limón.'],
-      tip: 'El salmón está listo cuando se separa en láminas con un tenedor.' },
-    { id: 'bowl-arroz-frijoles', type: 'almuerzo', name: 'Bowl de arroz integral y frijoles', kcal: 490, min: 20, tags: ['Vegano'],
-      img: 'photo-1615865417491-9941019fbc00', macros: { p: 17, c: 82, f: 10 },
-      desc: 'Arroz integral, frijoles negros, maíz y pico de gallo.',
-      ingredients: ['¾ de taza de arroz integral cocido', '½ taza de frijoles negros cocidos', '¼ de taza de maíz', 'Pico de gallo: tomate, cebolla, cilantro y limón', '¼ de aguacate', 'Comino y sal'],
-      steps: ['Calienta los frijoles con una pizca de comino.', 'Prepara el pico de gallo picando y mezclando sus ingredientes.', 'Sirve el arroz en la base del tazón.', 'Acomoda los frijoles, el maíz, el pico de gallo y el aguacate encima.'],
-      tip: 'Arroz + frijoles forman una proteína completa: ideal si no comes carne.' },
-    { id: 'crema-calabaza', type: 'cena', name: 'Crema de calabaza con semillas', kcal: 280, min: 25, tags: ['Ligero'],
-      img: 'photo-1476718406336-bb5a9690ee2a', macros: { p: 8, c: 34, f: 12 },
-      desc: 'Calabaza, cebolla, caldo de verduras y pepitas tostadas.',
-      ingredients: ['300 g de calabaza en cubos', '½ cebolla', '1 diente de ajo', '400 ml de caldo de verduras', '1 cucharadita de aceite de oliva', '1 cucharada de pepitas de calabaza', 'Nuez moscada, sal y pimienta'],
-      steps: ['Sofríe la cebolla y el ajo en el aceite 3 minutos.', 'Añade la calabaza y el caldo y cocina 15 minutos hasta que esté blanda.', 'Licúa hasta obtener una crema y ajusta la sal y la nuez moscada.', 'Tuesta las pepitas en una sartén seca y espolvoréalas al servir.'],
-      tip: 'Congela porciones individuales: se conservan hasta 3 meses.' },
-    { id: 'tortilla-claras', type: 'cena', name: 'Tortilla de claras con champiñones', kcal: 260, min: 10, tags: ['Proteína', 'Ligero'],
-      img: 'photo-1668283653825-37b80f055b05', macros: { p: 28, c: 8, f: 12 },
-      desc: 'Claras, champiñones, espinaca y queso fresco.',
-      ingredients: ['4 claras de huevo (o 1 huevo + 3 claras)', '80 g de champiñones rebanados', '1 puñado de espinaca', '30 g de queso fresco', '1 cucharadita de aceite', 'Sal, pimienta y hierbas finas'],
-      steps: ['Saltea los champiñones en el aceite 3 minutos y añade la espinaca hasta que se marchite.', 'Bate las claras con sal y pimienta.', 'Vierte las claras sobre las verduras a fuego bajo y tapa 3 minutos.', 'Añade el queso, dobla la tortilla y sirve.'],
-      tip: 'Acompáñala con una ensalada verde para sumar volumen sin muchas calorías.' },
-    { id: 'pescado-ensalada-tibia', type: 'cena', name: 'Pescado blanco con ensalada tibia', kcal: 340, min: 20, tags: ['Bajo en grasa'],
-      img: 'photo-1676300185165-3f543c1fcb72', macros: { p: 32, c: 18, f: 15 },
-      desc: 'Filete de pescado blanco, hojas verdes y verduras asadas.',
-      ingredients: ['150 g de filete de pescado blanco (tilapia, merluza o basa)', '1 taza de hojas verdes', '½ calabacita y ½ pimiento en tiras', '1 cucharadita de aceite de oliva', 'Limón, ajo, perejil y sal'],
-      steps: ['Asa las verduras en una sartén con la mitad del aceite 5 minutos.', 'Sazona el pescado con ajo, sal y limón.', 'Cocínalo con el resto del aceite 3 minutos por lado.', 'Sirve sobre las hojas verdes con las verduras tibias y perejil.'],
-      tip: 'El pescado blanco es de las proteínas más ligeras: perfecto para la cena.' },
-    { id: 'wrap-pavo', type: 'cena', name: 'Wrap integral de pavo y vegetales', kcal: 410, min: 10, tags: ['Proteína'],
-      img: 'photo-1584947897804-408958123f1d', macros: { p: 28, c: 40, f: 14 },
-      desc: 'Tortilla integral, pavo, lechuga, zanahoria y hummus.',
-      ingredients: ['1 tortilla integral grande', '80 g de pechuga de pavo en rebanadas', '2 cucharadas de hummus', 'Lechuga en tiras', '½ zanahoria rallada', '¼ de pepino en bastones'],
-      steps: ['Calienta la tortilla 20 segundos en un sartén.', 'Unta el hummus en el centro.', 'Acomoda el pavo y los vegetales.', 'Dobla los extremos, enrolla firmemente y corta a la mitad.'],
-      tip: 'Envuélvelo en papel aluminio para llevarlo: aguanta bien unas horas.' },
-    { id: 'manzana-cacahuate', type: 'snack', name: 'Manzana con crema de cacahuate', kcal: 190, min: 2, tags: ['Saciante'],
-      img: 'photo-1572269852948-434ae794bb1b', macros: { p: 5, c: 25, f: 9 },
-      desc: 'Una manzana en gajos con una cucharada de crema de cacahuate.',
-      ingredients: ['1 manzana mediana', '1 cucharada (15 g) de crema de cacahuate natural', 'Canela al gusto'],
-      steps: ['Lava la manzana y córtala en gajos.', 'Sirve la crema de cacahuate en un recipiente pequeño.', 'Espolvorea canela y moja los gajos al comer.'],
-      tip: 'Elige crema de cacahuate sin azúcar añadida: solo cacahuate y sal.' },
-    { id: 'hummus-zanahoria', type: 'snack', name: 'Hummus con bastones de zanahoria', kcal: 160, min: 5, tags: ['Vegano'],
-      img: 'photo-1753364547864-679728b22c31', macros: { p: 6, c: 18, f: 8 },
-      desc: 'Tres cucharadas de hummus con zanahoria y pepino.',
-      ingredients: ['3 cucharadas de hummus', '1 zanahoria en bastones', '½ pepino en bastones', 'Pimentón al gusto'],
-      steps: ['Pela y corta la zanahoria y el pepino en bastones.', 'Sirve el hummus con un toque de pimentón.', 'Acompaña con los bastones.'],
-      tip: 'Hummus casero: garbanzos, tahini, limón, ajo y un chorrito de agua licuados.' },
-    { id: 'almendras', type: 'snack', name: 'Puñado de almendras', kcal: 150, min: 1, tags: ['Grasas saludables'],
-      img: 'photo-1608797178974-15b35a64ede9', macros: { p: 5, c: 5, f: 13 },
-      desc: 'Unas 25 g de almendras naturales.',
-      ingredients: ['25 g de almendras naturales (unas 20 piezas)'],
-      steps: ['Mide la porción en una báscula o cuéntalas.', 'Guárdalas en un recipiente pequeño para llevar.'],
-      tip: 'Tuéstalas 8 minutos a 170 °C para más sabor, sin añadir aceite ni sal.' },
-    { id: 'cottage-pina', type: 'snack', name: 'Queso cottage con piña', kcal: 170, min: 3, tags: ['Proteína'],
-      img: 'photo-1777301401075-739121f0315f', macros: { p: 14, c: 18, f: 4 },
-      desc: 'Media taza de cottage con piña natural.',
-      ingredients: ['½ taza (110 g) de queso cottage bajo en grasa', '½ taza de piña natural en cubos', 'Menta fresca (opcional)'],
-      steps: ['Sirve el cottage en un tazón.', 'Añade la piña en cubos.', 'Decora con hojas de menta.'],
-      tip: 'Cambia la piña por durazno o fresas según la temporada.' },
-  ];
+  /* Recetas: viven en la tabla "meals" de Supabase (el administrador las edita) y se cargan al iniciar sesión. */
+  let MEALS = [];
   const MEAL_LABEL = { desayuno: 'Desayuno', almuerzo: 'Almuerzo', cena: 'Cena', snack: 'Snack' };
-  const mealImage = (m, w = 640) => `https://images.unsplash.com/${m.img}?auto=format&fit=crop&w=${w}&q=70`;
+  /** La imagen puede ser el ID de una foto de Unsplash (photo-…) o un enlace https completo. */
+  const isUnsplash = (img) => /^photo-/.test(img);
+  const mealImage = (m, w = 640) => (isUnsplash(m.img) ? `https://images.unsplash.com/${m.img}?auto=format&fit=crop&w=${w}&q=70` : m.img);
+
+  /** Tarjeta de comida (la misma en el plan, en el panel de administración y en su vista previa). */
+  function mealCardHTML(m, cal, { tag = 'a' } = {}) {
+    const attrs = tag === 'a' ? ` href="#/app/plan?receta=${encodeURIComponent(m.id)}" aria-label="Ver la receta: ${escapeHTML(m.name)}"` : '';
+    return `
+      <${tag} class="meal"${attrs}>
+        <div class="meal__media">
+          <img src="${escapeHTML(mealImage(m, 480))}" alt="" loading="lazy" decoding="async" width="480" height="360" data-fallback>
+          <span class="meal__type">${MEAL_LABEL[m.type] || ''}</span>
+          <span class="meal__kcal">${fmtInt(m.kcal || 0)}<small> kcal</small></span>
+        </div>
+        <div class="meal__body">
+          <h3>${escapeHTML(m.name)}</h3>
+          <p>${escapeHTML(m.desc)}</p>
+          <div class="meal__meta"><span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${m.min || 0} min</span>${cal ? `<span>${Math.round((m.kcal / cal.target) * 100)} % del día</span>` : ''}</div>
+          <div class="tags">${m.tags.map((t) => `<span class="tag">${escapeHTML(t)}</span>`).join('')}</div>
+          ${tag === 'a' ? '<span class="meal__cta">Ver receta <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>' : ''}
+        </div>
+      </${tag}>`;
+  }
 
   const EXERCISES = {
     bajo: [
@@ -566,13 +492,15 @@
   const currentUser = () => state.user;
 
   async function loadUserData() {
-    const [me, history, activities, logins, isAdmin] = await Promise.all([
+    const [me, history, activities, logins, isAdmin, meals] = await Promise.all([
       db.getMe(),
       db.listRecords(),
       db.listActivities({ sinceDays: 365 }),
       db.recentLogins(2).catch(() => []),
       db.isAdmin(),
+      db.listMeals().catch(() => null),
     ]);
+    if (meals) MEALS = meals;
     state.user = { ...me, history, activities, previousLogin: logins[1] || null };
     state.isAdmin = isAdmin;
     $('#nav-admin').hidden = !isAdmin;
@@ -1384,7 +1312,7 @@
         if (goal === 'perder') return opts[0];
         if (goal === 'ganar') return opts.at(-1);
         return opts[Math.floor(opts.length / 2)];
-      });
+      }).filter(Boolean); // un tipo sin recetas simplemente no aparece
       const sum = list.reduce((s, m) => s + m.kcal, 0);
       note = cal
         ? `Este menú suma ${fmtInt(sum)} kcal de tus ${fmtInt(cal.target)} kcal. Completa con fruta, verdura y porciones de cereal según tu hambre.`
@@ -1393,21 +1321,11 @@
       list = MEALS.filter((m) => m.type === mealTab);
     }
     $('#plan-tab-note').textContent = note;
-    $('#plan-meals').innerHTML = list.map((m) => `
-      <a class="meal" href="#/app/plan?receta=${m.id}" aria-label="Ver la receta: ${m.name}">
-        <div class="meal__media">
-          <img src="${mealImage(m, 480)}" alt="" loading="lazy" decoding="async" width="480" height="360" data-fallback>
-          <span class="meal__type">${MEAL_LABEL[m.type]}</span>
-          <span class="meal__kcal">${m.kcal}<small> kcal</small></span>
-        </div>
-        <div class="meal__body">
-          <h3>${m.name}</h3>
-          <p>${m.desc}</p>
-          <div class="meal__meta"><span><i class="fa-regular fa-clock" aria-hidden="true"></i> ${m.min} min</span>${cal ? `<span>${Math.round((m.kcal / cal.target) * 100)} % del día</span>` : ''}</div>
-          <div class="tags">${m.tags.map((t) => `<span class="tag">${t}</span>`).join('')}</div>
-          <span class="meal__cta">Ver receta <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
-        </div>
-      </a>`).join('');
+    if (!list.length) {
+      emptyState($('#plan-meals'), 'fa-bowl-food', 'Todavía no hay recetas en esta sección.');
+      return;
+    }
+    $('#plan-meals').innerHTML = list.map((m) => mealCardHTML(m, cal)).join('');
   }
 
   /* ---------- Receta detallada ---------- */
@@ -1427,40 +1345,40 @@
     const next = siblings[(i + 1) % siblings.length];
     $('#recipe-body').innerHTML = `
       <div class="recipe__hero">
-        <img src="${mealImage(m, 1200)}" alt="${escapeHTML(m.name)}" decoding="async" data-fallback>
+        <img src="${escapeHTML(mealImage(m, 1200))}" alt="${escapeHTML(m.name)}" decoding="async" data-fallback>
         <button type="button" class="icon-btn" data-close-recipe aria-label="Cerrar receta"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
         <div class="recipe__hero-text">
           <span class="badge badge--accent">${MEAL_LABEL[m.type]}</span>
-          <h2 class="h-md" id="recipe-title">${m.name}</h2>
+          <h2 class="h-md" id="recipe-title">${escapeHTML(m.name)}</h2>
         </div>
-        <a class="recipe__credit" href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Foto: Unsplash</a>
+        ${isUnsplash(m.img) ? '<a class="recipe__credit" href="https://unsplash.com/" target="_blank" rel="noopener noreferrer">Foto: Unsplash</a>' : ''}
       </div>
       <div class="recipe__content">
         <div class="recipe__facts">
           <div><strong>${m.kcal}</strong><span>kcal</span></div>
           <div><strong>${m.min}</strong><span>minutos</span></div>
-          <div><strong>${m.macros.p} g</strong><span>proteína</span></div>
+          <div><strong>${fmtNum(m.macros.p)} g</strong><span>proteína</span></div>
           <div><strong>${cal ? `${Math.round((m.kcal / cal.target) * 100)} %` : '1'}</strong><span>${cal ? 'de tu día' : 'porción'}</span></div>
         </div>
-        <p class="muted">${m.desc} Carbohidratos: ${m.macros.c} g · Grasas: ${m.macros.f} g.</p>
+        <p class="muted">${escapeHTML(m.desc)} Carbohidratos: ${fmtNum(m.macros.c)} g · Grasas: ${fmtNum(m.macros.f)} g.</p>
         <div class="recipe__cols">
           <div>
             <h3>Ingredientes</h3>
             <ul class="recipe__ingredients">
-              ${m.ingredients.map((ing) => `<li><label><input type="checkbox"><span>${ing}</span></label></li>`).join('')}
+              ${m.ingredients.map((ing) => `<li><label><input type="checkbox"><span>${escapeHTML(ing)}</span></label></li>`).join('')}
             </ul>
           </div>
           <div>
             <h3>Preparación</h3>
-            <ol class="recipe__steps">${m.steps.map((s) => `<li><span>${s}</span></li>`).join('')}</ol>
+            <ol class="recipe__steps">${m.steps.map((s) => `<li><span>${escapeHTML(s)}</span></li>`).join('')}</ol>
           </div>
         </div>
-        <p class="recipe__tip"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span><strong>Consejo:</strong> ${m.tip}</span></p>
-        <div class="tags">${m.tags.map((t) => `<span class="tag">${t}</span>`).join('')}</div>
-        <div class="recipe__nav">
-          <a class="btn btn--ghost btn--sm" href="#/app/plan?receta=${prev.id}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ${prev.name}</a>
-          <a class="btn btn--ghost btn--sm" href="#/app/plan?receta=${next.id}">${next.name} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-        </div>
+        ${m.tip ? `<p class="recipe__tip"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span><strong>Consejo:</strong> ${escapeHTML(m.tip)}</span></p>` : ''}
+        <div class="tags">${m.tags.map((t) => `<span class="tag">${escapeHTML(t)}</span>`).join('')}</div>
+        ${siblings.length > 1 ? `<div class="recipe__nav">
+          <a class="btn btn--ghost btn--sm" href="#/app/plan?receta=${encodeURIComponent(prev.id)}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ${escapeHTML(prev.name)}</a>
+          <a class="btn btn--ghost btn--sm" href="#/app/plan?receta=${encodeURIComponent(next.id)}">${escapeHTML(next.name)} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        </div>` : ''}
       </div>`;
     recipeDialog.scrollTop = 0;
     if (!recipeDialog.open) recipeDialog.showModal();
@@ -2095,6 +2013,7 @@
   function renderAdminCharts() {
     if (adminState.tab === 'resumen' && adminState.logins) renderAdminLogins(adminState.logins);
     if (adminState.tab === 'estadisticas' && adminState.users.length) renderAdminStats();
+    if (adminState.tab === 'comidas') renderAdminMeals();
   }
 
   let adminResizeTimer = 0;
@@ -2598,6 +2517,196 @@
     adminState.stat = btn.dataset.stat;
     selectTab($('#admin-stat-metric'), btn);
     renderAdminStats();
+  });
+
+  /* ---------- Comidas recomendadas: agregar, editar y eliminar ---------- */
+  const mealState = { filter: 'todas', editing: null };
+
+  function renderAdminMeals() {
+    const list = mealState.filter === 'todas' ? MEALS : MEALS.filter((m) => m.type === mealState.filter);
+    const counts = Object.keys(MEAL_LABEL).map((t) => {
+      const n = MEALS.filter((m) => m.type === t).length;
+      return `${n} ${MEAL_LABEL[t].toLowerCase()}${n === 1 ? '' : 's'}`;
+    });
+    $('#admin-meal-count').textContent = `${MEALS.length} recetas · ${counts.join(' · ')}`;
+    const host = $('#admin-meals');
+    if (!list.length) {
+      host.innerHTML = '';
+      emptyState(host, 'fa-bowl-food', 'No hay recetas en esta sección. Agrega la primera.');
+      return;
+    }
+    host.innerHTML = list.map((m) => `
+      <div class="admin-meal">
+        ${mealCardHTML(m, null, { tag: 'div' })}
+        <div class="admin-meal__actions">
+          <button type="button" class="btn btn--ghost btn--sm" data-meal-view="${escapeHTML(m.id)}"><i class="fa-solid fa-eye" aria-hidden="true"></i> Ver</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-meal-edit="${escapeHTML(m.id)}"><i class="fa-solid fa-pen" aria-hidden="true"></i> Editar</button>
+          <button type="button" class="icon-btn icon-btn--danger" data-meal-delete="${escapeHTML(m.id)}" title="Eliminar" aria-label="Eliminar ${escapeHTML(m.name)}"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+        </div>
+      </div>`).join('');
+  }
+
+  $('#admin-meal-filter').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-meal-type]');
+    if (!btn) return;
+    mealState.filter = btn.dataset.mealType;
+    selectTab($('#admin-meal-filter'), btn);
+    renderAdminMeals();
+  });
+
+  const mealDialog = $('#meal-dialog');
+  const mealForm = $('#meal-form');
+
+  /** "Pollo a la plancha" → "pollo-a-la-plancha" (sin repetir uno que ya existe) */
+  function mealSlug(name) {
+    const base = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50).replace(/-+$/, '') || 'receta';
+    const root = base.length >= 3 ? base : `receta-${base}`;
+    let id = root;
+    for (let n = 2; MEALS.some((m) => m.id === id); n += 1) id = `${root}-${n}`;
+    return id;
+  }
+
+  const lines = (v) => v.split('\n').map((x) => x.trim()).filter(Boolean);
+
+  /** Lee el formulario y lo convierte en una receta con el formato de la app */
+  function readMealForm() {
+    const f = mealForm.elements;
+    const num = (el) => (el.value.trim() === '' ? NaN : parseNum(el.value));
+    return {
+      id: mealState.editing || '',
+      type: f.type.value,
+      name: f.name.value.trim().replace(/\s+/g, ' '),
+      kcal: num(f.kcal),
+      min: num(f.minutes),
+      macros: { p: num(f.protein), c: num(f.carbs), f: num(f.fat) },
+      desc: f.desc.value.trim().replace(/\s+/g, ' '),
+      img: f.image.value.trim(),
+      tags: f.tags.value.split(',').map((t) => t.trim()).filter(Boolean),
+      ingredients: lines(f.ingredients.value),
+      steps: lines(f.steps.value),
+      tip: f.tip.value.trim(),
+    };
+  }
+
+  // Mismas reglas que la tabla "meals" de la base de datos
+  function validateMeal(m) {
+    const between = (v, lo, hi) => Number.isFinite(v) && v >= lo && v <= hi;
+    const tooLong = (arr, max) => arr.some((x) => x.length > max);
+    return {
+      name: m.name.length < 3 ? 'Escribe un nombre de al menos 3 caracteres.' : m.name.length > 80 ? 'Máximo 80 caracteres.' : '',
+      type: MEAL_LABEL[m.type] ? '' : 'Elige el tipo de comida.',
+      kcal: between(m.kcal, 20, 2000) && Number.isInteger(m.kcal) ? '' : 'Un número entero entre 20 y 2000.',
+      minutes: between(m.min, 1, 240) && Number.isInteger(m.min) ? '' : 'Un número entero entre 1 y 240.',
+      protein: between(m.macros.p, 0, 300) ? '' : 'Entre 0 y 300 g.',
+      carbs: between(m.macros.c, 0, 300) ? '' : 'Entre 0 y 300 g.',
+      fat: between(m.macros.f, 0, 300) ? '' : 'Entre 0 y 300 g.',
+      desc: m.desc.length < 10 ? 'Escribe una descripción de al menos 10 caracteres.' : m.desc.length > 200 ? 'Máximo 200 caracteres.' : '',
+      image: /^(photo-[A-Za-z0-9-]+|https:\/\/[^\s"<>]+)$/.test(m.img) && m.img.length <= 500 ? '' : 'Pega un enlace que empiece con https:// (o el ID photo-… de Unsplash).',
+      tags: m.tags.length > 5 ? 'Máximo 5 etiquetas.' : tooLong(m.tags, 24) ? 'Cada etiqueta puede tener hasta 24 caracteres.' : '',
+      ingredients: !m.ingredients.length ? 'Escribe al menos un ingrediente.' : m.ingredients.length > 25 ? 'Máximo 25 ingredientes.' : tooLong(m.ingredients, 150) ? 'Cada ingrediente puede tener hasta 150 caracteres.' : '',
+      steps: !m.steps.length ? 'Escribe al menos un paso.' : m.steps.length > 20 ? 'Máximo 20 pasos.' : tooLong(m.steps, 400) ? 'Cada paso puede tener hasta 400 caracteres.' : '',
+      tip: m.tip.length > 300 ? 'Máximo 300 caracteres.' : '',
+    };
+  }
+
+  function renderMealPreview() {
+    const m = readMealForm();
+    const preview = {
+      ...m,
+      name: m.name || 'Nombre de la receta',
+      desc: m.desc || 'La descripción corta aparece aquí.',
+      kcal: Number.isFinite(m.kcal) ? m.kcal : 0,
+      min: Number.isFinite(m.min) ? m.min : 0,
+      img: m.img || 'photo-',
+    };
+    $('#meal-preview').innerHTML = mealCardHTML(preview, null, { tag: 'div' });
+  }
+
+  function openMealEditor(id = null) {
+    const m = id ? MEALS.find((x) => x.id === id) : null;
+    mealState.editing = m ? m.id : null;
+    mealForm.reset();
+    clearForm(mealForm);
+    $('#meal-dialog-title').textContent = m ? 'Editar receta' : 'Agregar receta';
+    $('#meal-submit').textContent = m ? 'Guardar cambios' : 'Agregar receta';
+    const f = mealForm.elements;
+    if (m) {
+      f.name.value = m.name;
+      f.type.value = m.type;
+      f.kcal.value = m.kcal;
+      f.minutes.value = m.min;
+      f.protein.value = m.macros.p;
+      f.carbs.value = m.macros.c;
+      f.fat.value = m.macros.f;
+      f.desc.value = m.desc;
+      f.image.value = m.img;
+      f.tags.value = m.tags.join(', ');
+      f.ingredients.value = m.ingredients.join('\n');
+      f.steps.value = m.steps.join('\n');
+      f.tip.value = m.tip || '';
+    } else if (mealState.filter !== 'todas') {
+      f.type.value = mealState.filter;
+    }
+    renderMealPreview();
+    mealDialog.showModal();
+    mealDialog.scrollTop = 0;
+    f.name.focus();
+  }
+
+  $('#admin-meal-add').addEventListener('click', () => openMealEditor());
+  mealForm.addEventListener('input', renderMealPreview);
+  mealForm.addEventListener('change', renderMealPreview);
+  mealDialog.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close-dialog]')) mealDialog.close();
+  });
+
+  mealForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearForm(mealForm);
+    const m = readMealForm();
+    if (!applyErrors(mealForm, validateMeal(m))) return;
+    const isNew = !mealState.editing;
+    if (isNew) m.id = mealSlug(m.name);
+    await withBusy($('#meal-submit'), async () => {
+      try {
+        await db.admin.saveMeal(m, { isNew });
+        MEALS = await db.listMeals();
+      } catch (err) {
+        formAlert(mealForm, err.message);
+        return;
+      }
+      mealDialog.close();
+      renderAdminMeals();
+      toast(isNew ? `Se agregó «${m.name}» al plan de alimentación.` : `Se guardaron los cambios de «${m.name}».`, 'success');
+    });
+  });
+
+  $('#admin-meals').addEventListener('click', async (e) => {
+    const view = e.target.closest('[data-meal-view]');
+    const editBtn = e.target.closest('[data-meal-edit]');
+    const delBtn = e.target.closest('[data-meal-delete]');
+    if (view) openRecipe(view.dataset.mealView);
+    if (editBtn) openMealEditor(editBtn.dataset.mealEdit);
+    if (!delBtn) return;
+    const m = MEALS.find((x) => x.id === delBtn.dataset.mealDelete);
+    if (!m) return;
+    const left = MEALS.filter((x) => x.type === m.type).length - 1;
+    const ok = await confirmDialog({
+      title: 'Eliminar receta',
+      body: `«${m.name}» dejará de aparecer en el plan de alimentación de todas las personas. No se puede deshacer.${left ? '' : ` Es la única receta de ${MEAL_LABEL[m.type].toLowerCase()}: esa sección quedará vacía.`}`,
+      confirmLabel: 'Eliminar receta',
+    });
+    if (!ok) return;
+    try {
+      await db.admin.deleteMeal(m.id);
+      MEALS = MEALS.filter((x) => x.id !== m.id);
+    } catch (err) {
+      toast(err.message, 'error');
+      return;
+    }
+    renderAdminMeals();
+    toast(`Se eliminó «${m.name}».`, 'success');
   });
 
   const FB_STATUS_LABEL = { nuevo: 'Nueva', leido: 'Leída', resuelto: 'Resuelta' };

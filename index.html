@@ -1112,6 +1112,7 @@
           <div class="tabs tabs--pills tabs--compact" role="tablist" aria-label="Secciones de administración" id="admin-tabs">
             <button class="tab is-active" role="tab" aria-selected="true" data-admin-tab="resumen"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Resumen</button>
             <button class="tab" role="tab" aria-selected="false" data-admin-tab="usuarios"><i class="fa-solid fa-users" aria-hidden="true"></i> Usuarios</button>
+            <button class="tab" role="tab" aria-selected="false" data-admin-tab="comidas"><i class="fa-solid fa-bowl-food" aria-hidden="true"></i> Comidas</button>
             <button class="tab" role="tab" aria-selected="false" data-admin-tab="estadisticas"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> Estadísticas</button>
             <button class="tab" role="tab" aria-selected="false" data-admin-tab="sugerencias"><i class="fa-solid fa-comments" aria-hidden="true"></i> Sugerencias <span class="count-badge" id="admin-tab-feedback-count" hidden></span></button>
           </div>
@@ -1177,6 +1178,30 @@
             </div>
             <p class="caption muted"><strong>Activo:</strong> entró en los últimos 30 días. <strong>Inactivo:</strong> lleva más de 30 días sin entrar. <strong>Sin confirmar:</strong> no ha confirmado su correo.</p>
           </article>
+          </div>
+
+          <!-- Comidas: las tarjetas del plan de alimentación -->
+          <div class="admin-panel" data-admin-panel="comidas" hidden>
+            <article class="card">
+              <div class="card__head card__head--wrap">
+                <div>
+                  <h2 class="h-sm">Comidas recomendadas</h2>
+                  <p class="caption muted" id="admin-meal-count"></p>
+                </div>
+                <div class="admin-actions">
+                  <button type="button" class="btn btn--primary btn--sm" id="admin-meal-add"><i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar receta</button>
+                </div>
+              </div>
+              <div class="tabs tabs--pills tabs--compact" role="tablist" aria-label="Filtrar recetas" id="admin-meal-filter">
+                <button class="tab is-active" role="tab" aria-selected="true" data-meal-type="todas">Todas</button>
+                <button class="tab" role="tab" aria-selected="false" data-meal-type="desayuno">Desayunos</button>
+                <button class="tab" role="tab" aria-selected="false" data-meal-type="almuerzo">Almuerzos</button>
+                <button class="tab" role="tab" aria-selected="false" data-meal-type="cena">Cenas</button>
+                <button class="tab" role="tab" aria-selected="false" data-meal-type="snack">Snacks</button>
+              </div>
+              <div class="admin-meals" id="admin-meals"></div>
+              <p class="caption muted">Los cambios se ven en el plan de alimentación de todas las personas la próxima vez que lo abran.</p>
+            </article>
           </div>
 
           <!-- Estadísticas: media y cuartiles de todas las personas con peso registrado -->
@@ -1295,6 +1320,107 @@
       <div class="form-actions">
         <button type="button" class="btn btn--ghost" data-close-dialog>Cancelar</button>
         <button type="submit" class="btn btn--primary" id="create-user-submit" data-busy="Creando…">Crear cuenta</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Administración: agregar o editar una receta -->
+  <dialog class="dialog dialog--meal" id="meal-dialog" aria-labelledby="meal-dialog-title">
+    <form class="meal-editor" id="meal-form" novalidate>
+      <div class="meal-editor__head">
+        <h2 class="h-sm" id="meal-dialog-title">Agregar receta</h2>
+        <button type="button" class="icon-btn" data-close-dialog aria-label="Cerrar"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <div class="meal-editor__body">
+        <div class="meal-editor__fields">
+          <div class="form-alert" role="alert" hidden></div>
+          <div class="field">
+            <label for="mf-name">Nombre</label>
+            <input id="mf-name" name="name" maxlength="80" autocomplete="off" placeholder="Ej. Pollo a la plancha con quinoa" aria-describedby="mf-name-error">
+            <span class="field__error" id="mf-name-error"></span>
+          </div>
+          <div class="meal-editor__row">
+            <div class="field">
+              <label for="mf-type">Tipo de comida</label>
+              <select id="mf-type" name="type" aria-describedby="mf-type-error">
+                <option value="">Selecciona</option>
+                <option value="desayuno">Desayuno</option>
+                <option value="almuerzo">Almuerzo</option>
+                <option value="cena">Cena</option>
+                <option value="snack">Snack</option>
+              </select>
+              <span class="field__error" id="mf-type-error"></span>
+            </div>
+            <div class="field">
+              <label for="mf-kcal">Calorías (kcal)</label>
+              <input id="mf-kcal" name="kcal" inputmode="numeric" maxlength="4" aria-describedby="mf-kcal-error">
+              <span class="field__error" id="mf-kcal-error"></span>
+            </div>
+            <div class="field">
+              <label for="mf-minutes">Tiempo (min)</label>
+              <input id="mf-minutes" name="minutes" inputmode="numeric" maxlength="3" aria-describedby="mf-minutes-error">
+              <span class="field__error" id="mf-minutes-error"></span>
+            </div>
+          </div>
+          <div class="meal-editor__row">
+            <div class="field">
+              <label for="mf-protein">Proteína (g)</label>
+              <input id="mf-protein" name="protein" inputmode="decimal" maxlength="5" aria-describedby="mf-protein-error">
+              <span class="field__error" id="mf-protein-error"></span>
+            </div>
+            <div class="field">
+              <label for="mf-carbs">Carbohidratos (g)</label>
+              <input id="mf-carbs" name="carbs" inputmode="decimal" maxlength="5" aria-describedby="mf-carbs-error">
+              <span class="field__error" id="mf-carbs-error"></span>
+            </div>
+            <div class="field">
+              <label for="mf-fat">Grasas (g)</label>
+              <input id="mf-fat" name="fat" inputmode="decimal" maxlength="5" aria-describedby="mf-fat-error">
+              <span class="field__error" id="mf-fat-error"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="mf-desc">Descripción corta</label>
+            <input id="mf-desc" name="desc" maxlength="200" autocomplete="off" placeholder="Ingredientes principales en una frase" aria-describedby="mf-desc-error">
+            <span class="field__error" id="mf-desc-error"></span>
+          </div>
+          <div class="field">
+            <label for="mf-image">Imagen</label>
+            <input id="mf-image" name="image" maxlength="500" autocomplete="off" inputmode="url" placeholder="https://images.unsplash.com/…" aria-describedby="mf-image-hint mf-image-error">
+            <span class="caption muted" id="mf-image-hint">Copia la dirección de una imagen (clic derecho → «Copiar dirección de imagen»). Usa fotos con licencia libre, como las de Unsplash.</span>
+            <span class="field__error" id="mf-image-error"></span>
+          </div>
+          <div class="field">
+            <label for="mf-tags">Etiquetas</label>
+            <input id="mf-tags" name="tags" maxlength="140" autocomplete="off" placeholder="Proteína, Bajo en grasa" aria-describedby="mf-tags-hint mf-tags-error">
+            <span class="caption muted" id="mf-tags-hint">Sepáralas con comas. Hasta 5.</span>
+            <span class="field__error" id="mf-tags-error"></span>
+          </div>
+          <div class="field">
+            <label for="mf-ingredients">Ingredientes</label>
+            <textarea id="mf-ingredients" name="ingredients" rows="5" placeholder="Uno por línea" aria-describedby="mf-ingredients-error"></textarea>
+            <span class="field__error" id="mf-ingredients-error"></span>
+          </div>
+          <div class="field">
+            <label for="mf-steps">Preparación</label>
+            <textarea id="mf-steps" name="steps" rows="5" placeholder="Un paso por línea" aria-describedby="mf-steps-error"></textarea>
+            <span class="field__error" id="mf-steps-error"></span>
+          </div>
+          <div class="field">
+            <label for="mf-tip">Consejo (opcional)</label>
+            <input id="mf-tip" name="tip" maxlength="300" autocomplete="off" aria-describedby="mf-tip-error">
+            <span class="field__error" id="mf-tip-error"></span>
+          </div>
+        </div>
+        <aside class="meal-editor__preview">
+          <span class="tile__label">Vista previa</span>
+          <div id="meal-preview"></div>
+          <p class="caption muted">Así se verá la tarjeta en el plan de alimentación.</p>
+        </aside>
+      </div>
+      <div class="meal-editor__foot">
+        <button type="button" class="btn btn--ghost" data-close-dialog>Cancelar</button>
+        <button type="submit" class="btn btn--primary" id="meal-submit" data-busy="Guardando…">Agregar receta</button>
       </div>
     </form>
   </dialog>

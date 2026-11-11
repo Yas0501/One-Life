@@ -1396,3 +1396,40 @@ button { cursor: pointer; background: none; border: 0; }
   #create-user-form { padding: 22px 18px; }
   #user-dialog .legal-dialog__head { padding-left: 20px; padding-right: 20px; }
 }
+
+/* ==========================================================================
+   Panel de administración: comidas recomendadas
+   ========================================================================== */
+#admin-meal-filter { margin-bottom: 18px; flex-wrap: wrap; }
+.admin-meals { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: var(--gap); margin-bottom: 14px; }
+.admin-meal { display: flex; flex-direction: column; min-width: 0; border-radius: var(--r-lg); background: var(--surface); box-shadow: 0 0 0 1px var(--hairline); overflow: hidden; }
+.admin-meal .meal { flex: 1; box-shadow: none; border-radius: 0; }
+.admin-meal .meal:hover { transform: none; }
+.admin-meal__actions { display: flex; gap: 8px; padding: 0 16px 16px; }
+.admin-meal__actions .btn { flex: 1; justify-content: center; }
+
+.dialog--meal { width: min(1040px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; overscroll-behavior: contain; }
+.meal-editor { display: grid; }
+.meal-editor__head { position: sticky; top: 0; z-index: 3; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 28px; background: var(--surface); border-bottom: 1px solid var(--hairline); }
+.meal-editor__body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; padding: 24px 28px; align-items: start; }
+.meal-editor__fields { display: grid; gap: 16px; min-width: 0; }
+.meal-editor__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.meal-editor__fields textarea { min-height: 120px; }
+.meal-editor__preview { position: sticky; top: 88px; display: grid; gap: 10px; }
+.meal-editor__preview .meal { box-shadow: 0 0 0 1px var(--hairline); }
+.meal-editor__preview .meal:hover { transform: none; }
+.meal-editor__foot { position: sticky; bottom: 0; z-index: 3; display: flex; justify-content: flex-end; gap: 10px; padding: 16px 28px; background: var(--surface); border-top: 1px solid var(--hairline); }
+
+@media (max-width: 860px) {
+  .meal-editor__body { grid-template-columns: minmax(0, 1fr); }
+  .meal-editor__preview { position: static; order: -1; max-width: 320px; }
+}
+@media (max-width: 640px) {
+  .dialog--meal { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .meal-editor__head, .meal-editor__body, .meal-editor__foot { padding-left: 18px; padding-right: 18px; }
+  .meal-editor__row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meal-editor__row > :first-child { grid-column: 1 / -1; }
+  .meal-editor__preview { max-width: none; }
+  .meal-editor__foot .btn { flex: 1; justify-content: center; }
+  #admin-meal-filter { display: flex; }
+}
